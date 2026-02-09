@@ -10,7 +10,7 @@ collision_layer = 2
 script = ExtResource("1_nvvbs")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=899741208]
-scale = Vector2(5, 5)
+scale = Vector2(0.9, 0.9)
 texture = ExtResource("2_v7t65")
 hframes = 4
 vframes = 4

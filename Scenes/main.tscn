@@ -12,15 +12,12 @@ position = Vector2(87, 129)
 
 [node name="Enemy" parent="." unique_id=1661774182 instance=ExtResource("2_8gbba")]
 position = Vector2(377, 133)
-scale = Vector2(0.15, 0.15)
 
 [node name="Enemy2" parent="." unique_id=1406011499 instance=ExtResource("2_8gbba")]
 position = Vector2(415, 205)
-scale = Vector2(0.15, 0.15)
 
 [node name="Enemy3" parent="." unique_id=1897618453 instance=ExtResource("2_8gbba")]
 position = Vector2(382, 65)
-scale = Vector2(0.15, 0.15)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=444617480]
 
@@ -34,3 +31,7 @@ theme_override_constants/margin_top = 20
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Score : 0"
+
+[node name="Timer" type="Timer" parent="." unique_id=1973733727]
+wait_time = 2.0
+autostart = true
