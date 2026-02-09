@@ -5,7 +5,7 @@ var player : CharacterBody2D
 var health := 3
 var enemy_type := "normal"
 var score_value := 10
-
+var damage := 1
 var tex_normal = preload("res://Scenes/Main/Enemy/Sprites/enemy_normal.png")
 var tex_fast = preload("res://Scenes/Main/Enemy/Sprites/enemy_fast.png")
 var tex_tank = preload("res://Scenes/Main/Enemy/Sprites/enemy_tank.png")
@@ -22,16 +22,19 @@ func setup(type: String) -> void:
 			speed = 100.0
 			health = 3
 			score_value = 10
+			damage = 1
 			$Sprite2D.texture = tex_normal
 		"fast":
 			speed = 200.0
 			health = 1
 			score_value = 15
+			damage = 1
 			$Sprite2D.texture = tex_fast
 		"tank":
 			speed = 50.0
 			health = 8
 			score_value = 30
+			damage = 2
 			$Sprite2D.texture = tex_tank
 	
 	$Sprite2D.hframes = 4
@@ -48,7 +51,7 @@ func _physics_process(delta: float) -> void:
 	# Contact damage
 	if global_position.distance_to(player.global_position) < 30:
 		if player.has_method("take_damage"):
-			player.take_damage(1)
+			player.take_damage(damage)
 
 
 func take_damage(amount: int) -> void:
@@ -56,7 +59,7 @@ func take_damage(amount: int) -> void:
 	if health <= 0:
 		var main = get_tree().current_scene
 		if main.has_method("add_score"):
-			main.add_score(10)
+			main.add_score(score_value)
 		queue_free()  # Death
 	else:
 		var original_color = $Sprite2D.modulate
