@@ -1,5 +1,6 @@
 extends Area2D
 
+var damage := 1
 var speed := 500.0
 
 func _ready() -> void:
@@ -10,8 +11,8 @@ func _physics_process(delta: float) -> void:
 	
 func _on_body_entered(body: Node2D) -> void:
 	if body.has_method("take_damage"):
-		body.take_damage(1)
-	queue_free()  # La balle disparaît à l'impact
+		body.take_damage(damage)
+	queue_free()  # Remove bullet on hit
 	
 func _on_screen_exited() -> void:
-	queue_free()  # Supprimer la balle quand elle sort de l'écran
+	queue_free()  # Delete bullet when off-screen

@@ -9,6 +9,7 @@ var damage := 1
 var tex_normal = preload("res://Scenes/Main/Enemy/Sprites/enemy_normal.png")
 var tex_fast = preload("res://Scenes/Main/Enemy/Sprites/enemy_fast.png")
 var tex_tank = preload("res://Scenes/Main/Enemy/Sprites/enemy_tank.png")
+var powerup_scene = preload("res://Scenes/PowerUp/powerup.tscn")
 
 func _ready() -> void:
 	add_to_group("enemy")
@@ -60,6 +61,13 @@ func take_damage(amount: int) -> void:
 		var main = get_tree().current_scene
 		if main.has_method("add_score"):
 			main.add_score(score_value)
+		# 30% chance for a power-up drop
+		if randf() < 0.3:
+			var powerup = powerup_scene.instantiate()
+			var types = ["heal", "fire_rate", "damage"]
+			powerup.setup(types.pick_random())
+			powerup.global_position = global_position
+			main.call_deferred("add_child", powerup)
 		queue_free()  # Death
 	else:
 		var original_color = $Sprite2D.modulate

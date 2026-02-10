@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://bgvxlc4e3g2s"]
+
+[ext_resource type="Script" uid="uid://ba1xw0bly86kd" path="res://Scenes/PowerUp/Scripts/powerup.gd" id="1_ndlpc"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_7ey4s"]
+
+[node name="PowerUp" type="Area2D" unique_id=1550127196]
+collision_layer = 8
+script = ExtResource("1_ndlpc")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1428298891]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1412082787]
+shape = SubResource("CircleShape2D_7ey4s")
