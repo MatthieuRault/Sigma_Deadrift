@@ -18,7 +18,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	# Move the player
 	velocity = direction * speed	
-	move_and_slide()
+	move_and_slide()	
 	
 	# Rotate the sprite toward the mouse
 	var mouse_pos = get_global_mouse_position()	
@@ -52,10 +52,17 @@ func take_damage(amount: int) -> void:
 		return
 	health -= amount
 	
+	# Knockback - repousse le joueur loin de l'ennemi le plus proche
+	var nearest_enemy = get_tree().get_first_node_in_group("enemy")
+	if nearest_enemy:
+		var knockback_dir = (global_position - nearest_enemy.global_position).normalized()
+		velocity = knockback_dir * 300
+		move_and_slide()
+	
 	# Damage feedback = red flash
 	sprite.modulate = Color.RED
 	invincible = true
-	await get_tree().create_timer(0.5).timeout
+	await get_tree().create_timer(0.75).timeout
 	sprite.modulate = Color.WHITE
 	invincible = false
 	

@@ -24,7 +24,12 @@ animations = [{
 "speed": 5.0
 }]
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_t4iyn"]
+size = Vector2(20, 30)
+
 [node name="Player" type="CharacterBody2D" unique_id=874183628]
+collision_mask = 18
+motion_mode = 1
 script = ExtResource("1_uvnfx")
 bullet_scene = ExtResource("2_a3d8c")
 
@@ -34,3 +39,6 @@ animation = &"shoot"
 
 [node name="ShootPoint" type="Marker2D" parent="Soldier" unique_id=2085935180]
 position = Vector2(26.478874, 19.68421)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=846814453]
+shape = SubResource("RectangleShape2D_t4iyn")

@@ -27,6 +27,10 @@ func create_obstacles() -> void:
 		shape.size = Vector2(32, 32)
 		col.shape = shape
 		
+		# Set obstacle to layer 5
+		body.collision_layer = 16
+		body.collision_mask = 0
+		
 		body.add_child(sprite)
 		body.add_child(col)
 		body.position = pos
