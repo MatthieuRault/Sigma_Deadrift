@@ -1,13 +1,23 @@
 extends CharacterBody2D
-@export var bullet_scene : PackedScene
 
-var can_shoot := true
+# Movement
+@export var bullet_scene : PackedScene
 var speed : float = 200.0
 var direction := Vector2.ZERO
-var health := 5
-var invincible := false
+
+# Combat
+var can_shoot := true
 var bullet_damage := 1
 var shoot_cooldown := 0.15
+
+# Health
+var health := 5
+var invincible := false
+
+# Sounds
+var shoot_sound = preload("res://Sounds/shoot.wav")
+var hit_sound = preload("res://Sounds/player_hit.wav")
+
 @onready var sprite = $Soldier
 
 func _ready() -> void:
@@ -17,13 +27,13 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	# Move the player
-	velocity = direction * speed	
-	move_and_slide()	
+	velocity = direction * speed
+	move_and_slide()
 	
 	# Rotate the sprite toward the mouse
-	var mouse_pos = get_global_mouse_position()	
+	var mouse_pos = get_global_mouse_position()
 	var angle = global_position.angle_to_point(mouse_pos)
-	sprite.rotation = angle	
+	sprite.rotation = angle
 
 func _input(event: InputEvent) -> void:
 	direction = Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -33,33 +43,45 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed and can_shoot:
 			shoot()
 
+# Shoot a bullet toward the mouse direction
 func shoot() -> void:
-	if bullet_scene:
-		var bullet = bullet_scene.instantiate()
-		bullet.damage = bullet_damage
-		get_parent().add_child(bullet)		
-		bullet.global_position = sprite.global_position + Vector2.RIGHT.rotated(sprite.rotation) * 20
-		bullet.rotation = sprite.rotation		
-		sprite.play("shoot")
-		await get_tree().create_timer(0.1).timeout
-		sprite.play("idle")		
-		can_shoot = false
-		await get_tree().create_timer(shoot_cooldown).timeout
-		can_shoot = true
-		
-func take_damage(amount: int) -> void:
-	if invincible:
+	if not bullet_scene:
 		return
-	health -= amount
 	
-	# Knockback - repousse le joueur loin de l'ennemi le plus proche
+	var bullet = bullet_scene.instantiate()
+	bullet.damage = bullet_damage
+	get_parent().add_child(bullet)
+	bullet.global_position = sprite.global_position + Vector2.RIGHT.rotated(sprite.rotation) * 20
+	bullet.rotation = sprite.rotation
+	
+	# Shoot animation and sound
+	sprite.play("shoot")
+	_play_sound(shoot_sound, -10)
+	
+	await get_tree().create_timer(0.1).timeout
+	sprite.play("idle")
+	
+	# Shoot cooldown
+	can_shoot = false
+	await get_tree().create_timer(shoot_cooldown).timeout
+	can_shoot = true
+
+# Take damage from enemies, with knockback and invincibility frames
+func take_damage(amount: int) -> void:
+	if invincible or health <= 0:
+		return
+	
+	health -= amount
+	_play_sound(hit_sound, -15)
+	
+	# Knockback away from nearest enemy
 	var nearest_enemy = get_tree().get_first_node_in_group("enemy")
 	if nearest_enemy:
 		var knockback_dir = (global_position - nearest_enemy.global_position).normalized()
 		velocity = knockback_dir * 300
 		move_and_slide()
 	
-	# Damage feedback = red flash
+	# Invincibility frames with red flash
 	sprite.modulate = Color.RED
 	invincible = true
 	await get_tree().create_timer(0.75).timeout
@@ -70,6 +92,7 @@ func take_damage(amount: int) -> void:
 		health = 0
 		die()
 
+# Player death - hide and disable controls
 func die() -> void:
 	var main = get_tree().current_scene
 	if main.has_method("game_over"):
@@ -78,6 +101,7 @@ func die() -> void:
 	set_physics_process(false)
 	set_process_input(false)
 
+# Apply a power-up effect with temporary duration
 func apply_powerup(type: String) -> void:
 	match type:
 		"heal":
@@ -90,3 +114,12 @@ func apply_powerup(type: String) -> void:
 			bullet_damage = 3
 			await get_tree().create_timer(5.0).timeout
 			bullet_damage = 1
+
+# Helper to play a one-shot sound effect
+func _play_sound(sound: AudioStream, volume: float = -10) -> void:
+	var audio = AudioStreamPlayer.new()
+	audio.stream = sound
+	audio.volume_db = volume
+	add_child(audio)
+	audio.play()
+	audio.finished.connect(audio.queue_free)

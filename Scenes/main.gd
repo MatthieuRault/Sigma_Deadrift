@@ -4,6 +4,7 @@ var score := 0
 var is_game_over := false
 var enemy_scene = preload("res://Scenes/Main/Enemy/enemy.tscn")
 @onready var score_label = $CanvasLayer/MarginContainer/Label
+var gameover_sound = preload("res://Sounds/game_over.wav")
 
 func _ready() -> void:
 	$Timer.timeout.connect(_on_timer_timeout)
@@ -56,6 +57,11 @@ func game_over() -> void:
 	is_game_over = true
 	score_label.text = "GAME OVER ! Score: " + str(score) + "\nAppuyer sur une touche pour rejouer"
 	$Timer.stop()
+	var audio = AudioStreamPlayer.new()
+	audio.stream = gameover_sound
+	audio.volume_db = -20
+	add_child(audio)
+	audio.play()
 # Clear all remaining enemies
 	for enemy in get_tree().get_nodes_in_group("enemy"):
 		enemy.queue_free()
