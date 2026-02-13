@@ -50,7 +50,11 @@ func explode() -> void:
 				if enemy.has_method("take_damage"):
 					var falloff = 1.0 - (dist / explosion_radius) * 0.5
 					enemy.take_damage(int(explosion_damage * falloff))
-	
+					
+	var player = get_tree().get_first_node_in_group("player")
+	if player and player.has_method("shake_camera"):
+		player.shake_camera(8.0, 0.3)
+		
 	_show_explosion_visual()
 	
 	if ResourceLoader.exists("res://Sounds/enemy_death.wav"):

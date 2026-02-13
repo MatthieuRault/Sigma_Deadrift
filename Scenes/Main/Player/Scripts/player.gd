@@ -44,6 +44,7 @@ var shoot_sound = preload("res://Sounds/shoot.wav")
 var hit_sound = preload("res://Sounds/player_hit.wav")
 
 @onready var sprite = $Soldier
+@onready var camera = $Camera2D
 
 func _ready() -> void:
 	add_to_group("player")
@@ -181,6 +182,7 @@ func dash() -> void:
 	set_collision_layer_value(1, false)
 	
 	velocity = direction.normalized() * dash_speed
+	shake_camera(3.0, 0.1)
 	
 	# Player semi-transparent while dashing
 	sprite.modulate = Color(1, 1, 1, 0.4)
@@ -203,6 +205,7 @@ func take_damage(amount: int) -> void:
 	
 	health -= amount
 	_play_sound(hit_sound, -15)
+	shake_camera(6.0, 0.25)
 	
 	# Knockback away from nearest enemy
 	var nearest_enemy = get_tree().get_first_node_in_group("enemy")
@@ -265,3 +268,17 @@ func _play_sound(sound: AudioStream, volume: float = -10) -> void:
 	add_child(audio)
 	audio.play()
 	audio.finished.connect(audio.queue_free)
+
+# Intensity and duration screen shake effect
+func shake_camera(intensity: float = 5.0, duration: float = 0.2) -> void:
+	if not camera:
+		return
+	var shake_timer := 0.0
+	while shake_timer < duration:
+		camera.offset = Vector2(
+			randf_range(-intensity, intensity),
+			randf_range(-intensity, intensity)
+		)
+		shake_timer += get_process_delta_time()
+		await get_tree().process_frame
+	camera.offset = Vector2.ZERO
