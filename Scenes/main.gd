@@ -1,15 +1,23 @@
 extends Node2D
 
 var score := 0
-var time_alive := 0.0
 var is_game_over := false
 var enemy_scene = preload("res://Scenes/Main/Enemy/enemy.tscn")
 @onready var score_label = $CanvasLayer/MarginContainer/Label
 var gameover_sound = preload("res://Sounds/game_over.wav")
+var current_wave := 0
+var enemies_to_spawn := 0
+var enemies_alive := 0
+var wave_active := false
+var between_waves := false
+var spawn_interval := 1.0
 
 func _ready() -> void:
 	$Timer.timeout.connect(_on_timer_timeout)
+	$Timer.stop()
 	create_obstacles()
+	await get_tree().create_timer(1.0).timeout
+	start_next_wave()
 
 # Spawn obstacles - predefined positions
 func create_obstacles() -> void:
@@ -38,18 +46,46 @@ func create_obstacles() -> void:
 		body.position = pos
 		add_child(body)
 
+func start_next_wave() -> void:
+	current_wave += 1
+	wave_active = true
+	between_waves = false
+	
+	# Increase enemy count each wave
+	enemies_to_spawn = 3 + current_wave * 2
+	
+	# Increase spawn speed for higher waves
+	spawn_interval = max(0.3, 1.2 - current_wave * 0.05)
+	$Timer.wait_time = spawn_interval
+	$Timer.start()
+
+func _start_intermission() -> void:
+	await get_tree().create_timer(2.0).timeout
+	if not is_game_over:
+		start_next_wave()
+
 # Update UI score and hp
 func _process(delta: float) -> void:
 	if is_game_over:
 		return
 		
-	# Increase difficulty over time
-	time_alive += delta	
-	$Timer.wait_time = max(0.5, 2.0 - time_alive * 0.02)
+	# Count alive enemies
+	enemies_alive = get_tree().get_nodes_in_group("enemy").size()
+		
+	if wave_active and enemies_to_spawn <= 0 and enemies_alive <= 0:
+		wave_active = false
+		between_waves = true
+		_start_intermission()
 	
+	# HUD
 	var player = get_tree().get_first_node_in_group("player")
 	if player:
-		score_label.text = "Score: " + str(score) + "  |  Vie: " + str(player.health)
+		var wave_text = ""
+		if between_waves:
+			wave_text = "  |  Prochaine vague..."
+		score_label.text = "Score: %s  |  Vie: %s  |  Vague: %s%s" % [
+			score, player.health, current_wave, wave_text
+		]
 
 # Restart game
 func _input(event: InputEvent) -> void:
@@ -61,7 +97,8 @@ func add_score(amount: int) -> void:
 	
 func game_over() -> void:
 	is_game_over = true
-	score_label.text = "GAME OVER ! Score: " + str(score) + "\nAppuyer sur une touche pour rejouer"
+	score_label.text = "GAME OVER! Score: %s | Wave: %s\nPress any key to restart" % [str(score), str(current_wave)]
+
 	$Timer.stop()
 	var audio = AudioStreamPlayer.new()
 	audio.stream = gameover_sound
@@ -73,11 +110,11 @@ func game_over() -> void:
 		enemy.queue_free()
 		
 func _on_timer_timeout() -> void:
-	var enemy = enemy_scene.instantiate()
-	# More dangerous enemies over time
+	var enemy = enemy_scene.instantiate()	
+	# Increase difficulty
 	var rand = randf()
-	var tank_chance = min(0.15 + time_alive * 0.005, 0.4)
-	var fast_chance = min(0.25 + time_alive * 0.003, 0.35)
+	var tank_chance = min(0.1 + current_wave * 0.03, 0.35)
+	var fast_chance = min(0.2 + current_wave * 0.02, 0.4)
 	
 	if rand < tank_chance:
 		enemy.setup("tank")
@@ -100,3 +137,5 @@ func _on_timer_timeout() -> void:
 			enemy.global_position = Vector2(viewport_size.x + 50, randf() * viewport_size.y)
 	
 	add_child(enemy)
+	enemies_to_spawn -= 1
+	enemies_alive += 1
