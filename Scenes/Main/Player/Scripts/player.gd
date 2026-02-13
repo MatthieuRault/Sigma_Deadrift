@@ -34,6 +34,11 @@ var grenade_cooldown := 2.0
 var health := 5
 var invincible := false
 
+# Base stats
+var base_weapon_data := {}
+var damage_buff_active := false
+var fire_rate_buff_active := false
+
 # Sounds
 var shoot_sound = preload("res://Sounds/shoot.wav")
 var hit_sound = preload("res://Sounds/player_hit.wav")
@@ -44,6 +49,9 @@ func _ready() -> void:
 	add_to_group("player")
 	sprite.play("idle")
 	sprite.scale = Vector2(1, 1)
+	
+	for w in weapon_data:
+		base_weapon_data[w] = weapon_data[w].duplicate()
 	
 	if ResourceLoader.exists("res://Scenes/Grenade/grenade.tscn"):
 		grenade_scene = load("res://Scenes/Grenade/grenade.tscn")
@@ -229,21 +237,25 @@ func apply_powerup(type: String) -> void:
 		"heal":
 			health = min(health + 2, 5)
 		"fire_rate":
-			var original_cooldowns := {}
+			if fire_rate_buff_active:
+				return
+			fire_rate_buff_active = true
 			for w in weapon_data:
-				original_cooldowns[w] = weapon_data[w]["cooldown"]
-				weapon_data[w]["cooldown"] *= 0.4
+				weapon_data[w]["cooldown"] = base_weapon_data[w]["cooldown"] * 0.4
 			await get_tree().create_timer(5.0).timeout
 			for w in weapon_data:
-				weapon_data[w]["cooldown"] = original_cooldowns[w]
+				weapon_data[w]["cooldown"] = base_weapon_data[w]["cooldown"]
+			fire_rate_buff_active = false
 		"damage":
-			var original_damages := {}
+			if damage_buff_active:
+				return
+			damage_buff_active = true
 			for w in weapon_data:
-				original_damages[w] = weapon_data[w]["damage"]
-				weapon_data[w]["damage"] *= 3
+				weapon_data[w]["damage"] = base_weapon_data[w]["damage"] * 3
 			await get_tree().create_timer(5.0).timeout
 			for w in weapon_data:
-				weapon_data[w]["damage"] = original_damages[w]
+				weapon_data[w]["damage"] = base_weapon_data[w]["damage"]
+			damage_buff_active = false
 
 # Helper to play a one-shot sound effect
 func _play_sound(sound: AudioStream, volume: float = -10) -> void:
