@@ -51,6 +51,12 @@ func _ready() -> void:
 	sprite.play("idle")
 	sprite.scale = Vector2(1, 1)
 	
+	if camera:
+		camera.limit_left = 0
+		camera.limit_top = 0
+		camera.limit_right = 960
+		camera.limit_bottom = 540
+	
 	for w in weapon_data:
 		base_weapon_data[w] = weapon_data[w].duplicate()
 	

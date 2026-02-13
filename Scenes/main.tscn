@@ -12,6 +12,7 @@ offset_left = -500.0
 offset_top = -500.0
 offset_right = 1500.0
 offset_bottom = 1500.0
+pivot_offset = Vector2(-16, 16)
 mouse_filter = 2
 texture = ExtResource("2_jjvhh")
 stretch_mode = 1

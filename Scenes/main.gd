@@ -1,5 +1,6 @@
 extends Node2D
 
+var map_size := Vector2(960, 540)
 var score := 0
 var is_game_over := false
 var enemy_scene = preload("res://Scenes/Main/Enemy/enemy.tscn")
@@ -17,6 +18,7 @@ func _ready() -> void:
 	$Timer.timeout.connect(_on_timer_timeout)
 	$Timer.stop()
 	create_obstacles()
+	create_walls()
 	await get_tree().create_timer(1.0).timeout
 	start_next_wave()
 
@@ -24,8 +26,9 @@ func _ready() -> void:
 func create_obstacles() -> void:
 	var crate_texture = preload("res://Scenes/Main/Sprites/crate.png")
 	var obstacle_positions = [
-		Vector2(300, 200), Vector2(500, 400), Vector2(700, 150),
-		Vector2(200, 350), Vector2(600, 300), Vector2(400, 100)
+		Vector2(200, 150), Vector2(400, 300), Vector2(700, 150),
+		Vector2(150, 400), Vector2(500, 200), Vector2(300, 100),
+		Vector2(750, 400), Vector2(600, 450), Vector2(850, 250),
 	]
 	
 	for pos in obstacle_positions:
@@ -47,6 +50,40 @@ func create_obstacles() -> void:
 		body.position = pos
 		add_child(body)
 
+# Spawn walls
+func create_walls() -> void:
+	var thickness = 16.0
+	
+	# Position and size for each walls
+	var walls = [
+		{"pos": Vector2(map_size.x / 2, thickness / 2), "size": Vector2(map_size.x, thickness)},
+		{"pos": Vector2(map_size.x / 2, map_size.y - thickness / 2), "size": Vector2(map_size.x, thickness)},
+		{"pos": Vector2(thickness / 2, map_size.y / 2), "size": Vector2(thickness, map_size.y)},
+		{"pos": Vector2(map_size.x - thickness / 2, map_size.y / 2), "size": Vector2(thickness, map_size.y)},
+	]
+	
+	for w in walls:
+		var body = StaticBody2D.new()
+		var sprite = Sprite2D.new()
+		var col = CollisionShape2D.new()
+		var shape = RectangleShape2D.new()
+		
+		shape.size = w["size"]
+		col.shape = shape
+		
+		# Walls visual
+		sprite.region_enabled = true
+		sprite.region_rect = Rect2(Vector2.ZERO, w["size"])
+		sprite.texture = preload("res://Scenes/Main/Sprites/wall_brick.png")
+		sprite.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		
+		body.collision_layer = 16
+		body.collision_mask = 0
+		body.position = w["pos"]
+		body.add_child(sprite)
+		body.add_child(col)
+		add_child(body)
+
 func start_next_wave() -> void:
 	current_wave += 1
 	wave_active = true
@@ -58,7 +95,7 @@ func start_next_wave() -> void:
 		boss_alive = true
 	else:
 	# Increase enemy count each wave
-		enemies_to_spawn = 3 + current_wave * 2
+		enemies_to_spawn = 5 + current_wave * 3
 	
 	# Increase spawn speed for higher waves
 	spawn_interval = max(0.3, 1.2 - current_wave * 0.05)
@@ -144,17 +181,13 @@ func _on_timer_timeout() -> void:
 			enemy.setup("normal")
 	# Random spawn at screen edges
 	var side = randi() % 4
-	var viewport_size = get_viewport_rect().size
+	var margin = 20.0
 	
 	match side:
-		0: # Top
-			enemy.global_position = Vector2(randf() * viewport_size.x, -50)
-		1: # Bottom
-			enemy.global_position = Vector2(randf() * viewport_size.x, viewport_size.y + 50)
-		2: # Left
-			enemy.global_position = Vector2(-50, randf() * viewport_size.y)
-		3: # Right
-			enemy.global_position = Vector2(viewport_size.x + 50, randf() * viewport_size.y)
+		0: enemy.global_position = Vector2(randf() * map_size.x, margin)
+		1: enemy.global_position = Vector2(randf() * map_size.x, map_size.y - margin)
+		2: enemy.global_position = Vector2(margin, randf() * map_size.y)
+		3: enemy.global_position = Vector2(map_size.x - margin, randf() * map_size.y)
 	
 	add_child(enemy)
 	enemies_to_spawn -= 1
