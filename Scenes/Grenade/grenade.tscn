@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://cr4pmeqas3f2s"]
+
+[ext_resource type="Script" uid="uid://naknlksgg5j7" path="res://Scenes/Grenade/Scripts/grenade.gd" id="1_l604b"]
+[ext_resource type="Texture2D" uid="uid://bafj4uqn3k6jv" path="res://Scenes/Grenade/Sprites/grenade.png" id="2_0m8ca"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_shmim"]
+
+[node name="Grenade" type="Area2D" unique_id=1168110248]
+collision_layer = 8
+collision_mask = 16
+script = ExtResource("1_l604b")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1884589346]
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("2_0m8ca")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=527675804]
+scale = Vector2(0.3, 0.3)
+shape = SubResource("CircleShape2D_shmim")

@@ -25,6 +25,11 @@ var weapon_data := {
 	"sniper":  {"damage": 5, "cooldown": 1.0,  "speed": 800.0, "count": 1, "spread": 0.0, "piercing": true},
 }
 
+# Grenade
+var grenade_scene : PackedScene
+var can_grenade := true
+var grenade_cooldown := 2.0
+
 # Health
 var health := 5
 var invincible := false
@@ -39,6 +44,9 @@ func _ready() -> void:
 	add_to_group("player")
 	sprite.play("idle")
 	sprite.scale = Vector2(1, 1)
+	
+	if ResourceLoader.exists("res://Scenes/Grenade/grenade.tscn"):
+		grenade_scene = load("res://Scenes/Grenade/grenade.tscn")
 
 func _physics_process(delta: float) -> void:
 	# Dash
@@ -78,6 +86,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed and can_shoot:
 			shoot()
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed and can_grenade:
+			throw_grenade()
 			
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_SPACE and can_dash and direction != Vector2.ZERO:
@@ -138,6 +148,20 @@ func shoot() -> void:
 	can_shoot = false
 	await get_tree().create_timer(data["cooldown"]).timeout
 	can_shoot = true
+	
+func throw_grenade() -> void:
+	if not grenade_scene:
+		return
+	
+	can_grenade = false
+	
+	var grenade = grenade_scene.instantiate()
+	grenade.global_position = global_position
+	grenade.target_position = get_global_mouse_position()
+	get_parent().add_child(grenade)
+	
+	await get_tree().create_timer(grenade_cooldown).timeout
+	can_grenade = true
 	
 func dash() -> void:
 	is_dashing = true
