@@ -10,6 +10,7 @@ var enemies_to_spawn := 0
 var enemies_alive := 0
 var wave_active := false
 var between_waves := false
+var boss_alive := false
 var spawn_interval := 1.0
 
 func _ready() -> void:
@@ -51,8 +52,13 @@ func start_next_wave() -> void:
 	wave_active = true
 	between_waves = false
 	
+	var is_boss_wave = current_wave % 5 == 0
+	if is_boss_wave:
+		enemies_to_spawn = 1
+		boss_alive = true
+	else:
 	# Increase enemy count each wave
-	enemies_to_spawn = 3 + current_wave * 2
+		enemies_to_spawn = 3 + current_wave * 2
 	
 	# Increase spawn speed for higher waves
 	spawn_interval = max(0.3, 1.2 - current_wave * 0.05)
@@ -83,9 +89,14 @@ func _process(delta: float) -> void:
 		var wave_text = ""
 		if between_waves:
 			wave_text = "  |  Prochaine vague..."
+		elif current_wave % 5 == 0 and boss_alive:
+			wave_text = "  |  BOSS !"
 		score_label.text = "Score: %s  |  Vie: %s  |  Vague: %s%s" % [
 			score, player.health, current_wave, wave_text
 		]
+		
+func on_boss_killed() -> void:
+		boss_alive = false
 
 # Restart game
 func _input(event: InputEvent) -> void:
@@ -105,23 +116,32 @@ func game_over() -> void:
 	audio.volume_db = -20
 	add_child(audio)
 	audio.play()
-# Clear all remaining enemies
+	# Clear all remaining enemies
 	for enemy in get_tree().get_nodes_in_group("enemy"):
 		enemy.queue_free()
 		
 func _on_timer_timeout() -> void:
-	var enemy = enemy_scene.instantiate()	
-	# Increase difficulty
-	var rand = randf()
-	var tank_chance = min(0.1 + current_wave * 0.03, 0.35)
-	var fast_chance = min(0.2 + current_wave * 0.02, 0.4)
+	if enemies_to_spawn <= 0:
+		$Timer.stop()
+		return
 	
-	if rand < tank_chance:
-		enemy.setup("tank")
-	elif rand < tank_chance + fast_chance:
-		enemy.setup("fast")
+	var enemy = enemy_scene.instantiate()
+	var is_boss_wave = current_wave % 5 == 0
+	
+	if is_boss_wave:
+		enemy.setup("boss")
 	else:
-		enemy.setup("normal")
+	# Increase difficulty
+		var rand = randf()
+		var tank_chance = min(0.1 + current_wave * 0.03, 0.35)
+		var fast_chance = min(0.2 + current_wave * 0.02, 0.4)
+	
+		if rand < tank_chance:
+			enemy.setup("tank")
+		elif rand < tank_chance + fast_chance:
+			enemy.setup("fast")
+		else:
+			enemy.setup("normal")
 	# Random spawn at screen edges
 	var side = randi() % 4
 	var viewport_size = get_viewport_rect().size

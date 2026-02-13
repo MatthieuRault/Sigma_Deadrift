@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" uid="uid://bsjt3sthyd0bl" path="res://Scenes/main.gd" id="1_8gbba"]
 [ext_resource type="PackedScene" uid="uid://8pxg28cxeq0i" path="res://Scenes/Main/Player/player.tscn" id="1_bo1nx"]
-[ext_resource type="PackedScene" uid="uid://b6qwd65xagpie" path="res://Scenes/Main/Enemy/enemy.tscn" id="2_8gbba"]
 [ext_resource type="Texture2D" uid="uid://8hndptaaejee" path="res://Scenes/Main/Sprites/floor_concrete.png" id="2_jjvhh"]
 
 [node name="Main" type="Node2D" unique_id=1537711246]
@@ -19,15 +18,6 @@ stretch_mode = 1
 
 [node name="Player" parent="." unique_id=874183628 instance=ExtResource("1_bo1nx")]
 position = Vector2(87, 129)
-
-[node name="Enemy" parent="." unique_id=1661774182 instance=ExtResource("2_8gbba")]
-position = Vector2(377, 133)
-
-[node name="Enemy2" parent="." unique_id=1406011499 instance=ExtResource("2_8gbba")]
-position = Vector2(415, 205)
-
-[node name="Enemy3" parent="." unique_id=1897618453 instance=ExtResource("2_8gbba")]
-position = Vector2(382, 65)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=444617480]
 
