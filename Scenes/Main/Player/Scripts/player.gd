@@ -87,6 +87,10 @@ func dash() -> void:
 	can_dash = false
 	invincible = true
 	
+	# Ignore enemies during dash
+	set_collision_mask_value(2, false)
+	set_collision_layer_value(1, false)
+	
 	velocity = direction.normalized() * dash_speed
 	
 	# Player semi-transparent while dashing
@@ -95,6 +99,7 @@ func dash() -> void:
 	await get_tree().create_timer(dash_duration).timeout
 	
 	is_dashing = false
+	set_collision_mask_value(2, true)
 	sprite.modulate = Color.WHITE
 	invincible = false
 	
