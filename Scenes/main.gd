@@ -1,5 +1,42 @@
 extends Node2D
 
+# ==================== MAP ====================
+
+var map_size := Vector2(960, 540)
+
+# ==================== GAME STATE ====================
+
+var score := 0
+var is_game_over := false
+
+# ==================== WAVE SYSTEM ====================
+
+var current_wave := 0
+var enemies_to_spawn := 0
+var enemies_alive := 0
+var wave_active := false
+var between_waves := false
+var boss_alive := false
+var spawn_interval := 1.0
+
+# ==================== HUD STATE ====================
+
+var current_weapon_name := "pistol"
+
+# HUD nodes (created in code)
+var hearts_container : HBoxContainer
+var weapon_icon : TextureRect
+var weapon_label : Label
+var grenade_icon : TextureRect
+var dash_icon : TextureRect
+var wave_label : Label
+var score_display : Label
+
+# ==================== RESOURCES ====================
+
+var enemy_scene = preload("res://Scenes/Main/Enemy/enemy.tscn")
+var gameover_sound = preload("res://Sounds/game_over.wav")
+
 # HUD icons
 var icon_heart = preload("res://Scenes/Main/HUD/Sprites/icon_heart.png")
 var icon_heart_empty = preload("res://Scenes/Main/HUD/Sprites/icon_heart_empty.png")
@@ -9,56 +46,32 @@ var icon_sniper = preload("res://Scenes/Main/HUD/Sprites/icon_sniper.png")
 var icon_grenade = preload("res://Scenes/Main/HUD/Sprites/icon_grenade.png")
 var icon_dash = preload("res://Scenes/Main/HUD/Sprites/icon_dash.png")
 
-# HUD nodes
-var hearts_container : HBoxContainer
-var weapon_icon : TextureRect
-var weapon_label : Label
-var grenade_icon : TextureRect
-var dash_icon : TextureRect
-var wave_label : Label
-var score_display : Label
+# ==================== NODE REFERENCES ====================
 
-# Map
-var map_size := Vector2(960, 540)
-
-# Game state
-var score := 0
-var is_game_over := false
-var enemy_scene = preload("res://Scenes/Main/Enemy/enemy.tscn")
 @onready var score_label = $CanvasLayer/MarginContainer/Label
-var gameover_sound = preload("res://Sounds/game_over.wav")
 
-# Wave system
-var current_wave := 0
-var enemies_to_spawn := 0
-var enemies_alive := 0
-var wave_active := false
-var between_waves := false
-var boss_alive := false
-var spawn_interval := 1.0
-
-# Weapon display
-var current_weapon_name := "pistol"
+# ==================== INITIALIZATION ====================
 
 func _ready() -> void:
 	$Timer.timeout.connect(_on_timer_timeout)
 	$Timer.stop()
-	create_obstacles()
-	create_walls()
-	create_hud()
+	_create_obstacles()
+	_create_walls()
+	_create_hud()
 	await get_tree().create_timer(1.0).timeout
-	start_next_wave()
+	_start_next_wave()
 
-# Spawn obstacles at predefined positions
-func create_obstacles() -> void:
+# ==================== MAP SETUP ====================
+
+func _create_obstacles() -> void:
 	var crate_texture = preload("res://Scenes/Main/Sprites/crate.png")
-	var obstacle_positions = [
+	var positions = [
 		Vector2(200, 150), Vector2(400, 300), Vector2(700, 150),
 		Vector2(150, 400), Vector2(500, 200), Vector2(300, 100),
 		Vector2(750, 400), Vector2(600, 450), Vector2(850, 250),
 	]
 	
-	for pos in obstacle_positions:
+	for pos in positions:
 		var body = StaticBody2D.new()
 		var sprite = Sprite2D.new()
 		var col = CollisionShape2D.new()
@@ -67,8 +80,6 @@ func create_obstacles() -> void:
 		sprite.texture = crate_texture
 		shape.size = Vector2(32, 32)
 		col.shape = shape
-		
-		# Set obstacle to layer 5
 		body.collision_layer = 16
 		body.collision_mask = 0
 		
@@ -77,10 +88,8 @@ func create_obstacles() -> void:
 		body.position = pos
 		add_child(body)
 
-# Spawn visible walls around the map borders
-func create_walls() -> void:
+func _create_walls() -> void:
 	var thickness = 16.0
-	
 	var walls = [
 		{"pos": Vector2(map_size.x / 2, thickness / 2), "size": Vector2(map_size.x, thickness)},
 		{"pos": Vector2(map_size.x / 2, map_size.y - thickness / 2), "size": Vector2(map_size.x, thickness)},
@@ -96,8 +105,6 @@ func create_walls() -> void:
 		
 		shape.size = w["size"]
 		col.shape = shape
-		
-		# Wall visual using tiled brick texture
 		sprite.region_enabled = true
 		sprite.region_rect = Rect2(Vector2.ZERO, w["size"])
 		sprite.texture = preload("res://Scenes/Main/Sprites/wall_brick.png")
@@ -112,8 +119,7 @@ func create_walls() -> void:
 
 # ==================== HUD ====================
 
-func create_hud() -> void:
-	# Main container
+func _create_hud() -> void:
 	var hud = HBoxContainer.new()
 	hud.anchor_right = 1.0
 	hud.offset_left = 8
@@ -122,11 +128,10 @@ func create_hud() -> void:
 	hud.add_theme_constant_override("separation", 12)
 	$CanvasLayer.add_child(hud)
 	
-	# === Hearts ===
+	# Hearts
 	hearts_container = HBoxContainer.new()
 	hearts_container.add_theme_constant_override("separation", 2)
 	hud.add_child(hearts_container)
-	
 	for i in 5:
 		var h = TextureRect.new()
 		h.texture = icon_heart
@@ -136,7 +141,7 @@ func create_hud() -> void:
 	
 	_add_separator(hud)
 	
-	# === Weapon ===
+	# Weapon
 	weapon_icon = TextureRect.new()
 	weapon_icon.texture = icon_pistol
 	weapon_icon.stretch_mode = TextureRect.STRETCH_KEEP
@@ -150,14 +155,14 @@ func create_hud() -> void:
 	
 	_add_separator(hud)
 	
-	# === Grenade ===
+	# Grenade
 	grenade_icon = TextureRect.new()
 	grenade_icon.texture = icon_grenade
 	grenade_icon.stretch_mode = TextureRect.STRETCH_KEEP
 	grenade_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	hud.add_child(grenade_icon)
 	
-	# === Dash ===
+	# Dash
 	dash_icon = TextureRect.new()
 	dash_icon.texture = icon_dash
 	dash_icon.stretch_mode = TextureRect.STRETCH_KEEP
@@ -166,13 +171,13 @@ func create_hud() -> void:
 	
 	_add_separator(hud)
 	
-	# === Wave ===
+	# Wave
 	wave_label = Label.new()
 	wave_label.text = "Wave 1"
 	wave_label.add_theme_font_size_override("font_size", 14)
 	hud.add_child(wave_label)
 	
-	# === Score ===
+	# Score (aligned right)
 	var spacer = Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hud.add_child(spacer)
@@ -181,7 +186,7 @@ func create_hud() -> void:
 	score_display.text = "Score: 0"
 	score_display.add_theme_font_size_override("font_size", 14)
 	hud.add_child(score_display)
-		
+	
 	score_label.visible = false
 
 func _add_separator(parent: Node) -> void:
@@ -191,7 +196,6 @@ func _add_separator(parent: Node) -> void:
 	sep.modulate = Color(1, 1, 1, 0.3)
 	parent.add_child(sep)
 
-# Update HUD icons and labels every frame
 func _update_hud() -> void:
 	var player = get_tree().get_first_node_in_group("player")
 	if not player:
@@ -202,21 +206,20 @@ func _update_hud() -> void:
 		var h = hearts_container.get_child(i) as TextureRect
 		h.texture = icon_heart if i < player.health else icon_heart_empty
 	
-	# Weapon
+	# Weapon icon and name
 	var weapon_icons := {"pistol": icon_pistol, "shotgun": icon_shotgun, "sniper": icon_sniper}
 	var weapon_names := {"pistol": "Pistol", "shotgun": "Shotgun", "sniper": "Sniper"}
 	weapon_icon.texture = weapon_icons.get(current_weapon_name, icon_pistol)
 	weapon_label.text = weapon_names.get(current_weapon_name, "")
 	
-	# Grenade cooldown (dimmed when on cooldown)
+	# Grenade and dash cooldowns (dimmed when on cooldown)
 	grenade_icon.modulate = Color.WHITE if player.can_grenade else Color(1, 1, 1, 0.3)
-	
-	# Dash cooldown
 	dash_icon.modulate = Color.WHITE if player.can_dash else Color(1, 1, 1, 0.3)
 	
-	# Wave
+	# Wave display
 	if between_waves:
 		wave_label.text = "Prochaine vague..."
+		wave_label.modulate = Color.WHITE
 	elif current_wave % 5 == 0 and boss_alive:
 		wave_label.text = "Vague %s - BOSS!" % current_wave
 		wave_label.modulate = Color.RED
@@ -233,20 +236,17 @@ func on_weapon_changed(weapon: String) -> void:
 
 # ==================== WAVE SYSTEM ====================
 
-func start_next_wave() -> void:
+func _start_next_wave() -> void:
 	current_wave += 1
 	wave_active = true
 	between_waves = false
 	
-	var is_boss_wave = current_wave % 5 == 0
-	if is_boss_wave:
+	if current_wave % 5 == 0:
 		enemies_to_spawn = 1
 		boss_alive = true
 	else:
-		# Increase enemy count each wave
 		enemies_to_spawn = 5 + current_wave * 3
 	
-	# Faster spawns in later waves
 	spawn_interval = max(0.3, 1.2 - current_wave * 0.05)
 	$Timer.wait_time = spawn_interval
 	$Timer.start()
@@ -254,7 +254,7 @@ func start_next_wave() -> void:
 func _start_intermission() -> void:
 	await get_tree().create_timer(2.0).timeout
 	if not is_game_over:
-		start_next_wave()
+		_start_next_wave()
 
 func on_boss_killed() -> void:
 	boss_alive = false
@@ -265,10 +265,9 @@ func _process(delta: float) -> void:
 	if is_game_over:
 		return
 	
-	# Count alive enemies
 	enemies_alive = get_tree().get_nodes_in_group("enemy").size()
 	
-	# Safety: kill enemies stuck outside the map
+	# Remove enemies stuck outside map bounds
 	for enemy in get_tree().get_nodes_in_group("enemy"):
 		var pos = enemy.global_position
 		if pos.x < 0 or pos.x > map_size.x or pos.y < 0 or pos.y > map_size.y:
@@ -282,13 +281,14 @@ func _process(delta: float) -> void:
 	
 	_update_hud()
 
-# Restart game on key press after game over
-func _input(event: InputEvent) -> void:
-	if is_game_over and event is InputEventKey and event.pressed:
-		get_tree().reload_current_scene()
+# ==================== SCORE & GAME OVER ====================
 
 func add_score(amount: int) -> void:
 	score += amount
+
+func _input(event: InputEvent) -> void:
+	if is_game_over and event is InputEventKey and event.pressed:
+		get_tree().reload_current_scene()
 
 func game_over() -> void:
 	is_game_over = true
@@ -302,7 +302,6 @@ func game_over() -> void:
 	add_child(audio)
 	audio.play()
 	
-	# Clear all remaining enemies
 	for enemy in get_tree().get_nodes_in_group("enemy"):
 		enemy.queue_free()
 
@@ -314,14 +313,12 @@ func _on_timer_timeout() -> void:
 		return
 	
 	var enemy = enemy_scene.instantiate()
-	var is_boss_wave = current_wave % 5 == 0
 	
-	if is_boss_wave:
+	if current_wave % 5 == 0:
 		enemy.setup("boss")
 		enemies_to_spawn = 0
 		$Timer.stop()
 	else:
-		# Increase difficulty based on wave
 		var rand = randf()
 		var tank_chance = min(0.1 + current_wave * 0.03, 0.35)
 		var fast_chance = min(0.2 + current_wave * 0.02, 0.4)
@@ -333,7 +330,7 @@ func _on_timer_timeout() -> void:
 		else:
 			enemy.setup("normal")
 	
-	# Spawn at map edges (inside walls)
+	# Spawn inside map walls
 	var side = randi() % 4
 	var margin = 40.0
 	
