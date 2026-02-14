@@ -314,11 +314,11 @@ func _get_available_types() -> Array:
 	if current_wave >= 3:
 		types.append("tank")
 	if current_wave >= 4:
-		types.append("ranged")
+		types.append("shaman")
 	if current_wave >= 6:
-		types.append("splitter")
+		types.append("volatile")
 	if current_wave >= 7:
-		types.append("exploder")
+		types.append("necromancer")
 	if current_wave >= 8:
 		types.append("ghost")
 	
@@ -333,9 +333,9 @@ func _pick_enemy_type() -> String:
 		"normal": 30,
 		"fast": 25,
 		"tank": 10,
-		"ranged": 15,
-		"splitter": 10,
-		"exploder": 8,
+		"shaman": 15,
+		"necromancer": 10,
+		"volatile": 12,
 		"ghost": 8,
 	}
 	
