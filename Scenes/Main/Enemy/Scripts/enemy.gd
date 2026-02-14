@@ -150,6 +150,10 @@ func _die() -> void:
 	# Drop power-ups: boss drops all 3, others 30% chance for one
 	_drop_powerups(main)
 	
+	# Death particles
+	var color = Color(1.0, 0.3, 0.3) if is_boss else Color.RED
+	Effects.spawn_death(main, global_position, color)
+	
 	queue_free()
 
 func _hit_flash() -> void:

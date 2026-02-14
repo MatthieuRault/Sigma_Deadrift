@@ -111,6 +111,7 @@ func _explode() -> void:
 	
 	# Visual and sound
 	_show_explosion_visual()
+	Effects.spawn_explosion(get_tree().current_scene, global_position, explosion_radius)
 	_play_explosion_sound()
 	
 	# Hide sprite and remove after visual fades
