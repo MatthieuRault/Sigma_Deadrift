@@ -1,9 +1,7 @@
 [gd_scene format=3 uid="uid://b6qwd65xagpie"]
 
 [ext_resource type="Script" uid="uid://dl6q4nog3s6sd" path="res://Scenes/Main/Enemy/Scripts/enemy.gd" id="1_nvvbs"]
-
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_u2vbu"]
-load_path = "res://.godot/imported/enemy_normal.png-5ccb303b87116971c0101b00a7ad7dec.ctex"
+[ext_resource type="Texture2D" uid="uid://ci0se184b03g2" path="res://Scenes/Main/Enemy/Sprites/mob_normal.png" id="2_v7t65"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_dmwl5"]
 
@@ -15,7 +13,7 @@ script = ExtResource("1_nvvbs")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=899741208]
 scale = Vector2(0.9, 0.9)
-texture = SubResource("CompressedTexture2D_u2vbu")
+texture = ExtResource("2_v7t65")
 hframes = 4
 vframes = 4
 

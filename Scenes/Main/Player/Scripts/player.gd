@@ -6,6 +6,7 @@ extends CharacterBody2D
 
 # ==================== MOVEMENT ====================
 
+var base_speed : float = 220.0
 var speed : float = 220.0
 var direction := Vector2.ZERO
 
@@ -20,14 +21,18 @@ var is_dashing := false
 # ==================== WEAPONS ====================
 
 var can_shoot := true
+var is_firing := false
 var current_weapon := "pistol"
-var weapons := ["pistol", "shotgun", "sniper"]
+var weapons := ["pistol", "shotgun", "sniper", "assault", "minigun", "rocket"]
 var weapon_index := 0
 
 var weapon_data := {
-	"pistol":  {"damage": 1, "cooldown": 0.15, "speed": 500.0, "count": 1, "spread": 0.0, "piercing": false},
-	"shotgun": {"damage": 1, "cooldown": 0.5,  "speed": 400.0, "count": 5, "spread": 0.4, "piercing": false},
-	"sniper":  {"damage": 5, "cooldown": 1.0,  "speed": 800.0, "count": 1, "spread": 0.0, "piercing": true},
+	"pistol":  {"damage": 1, "cooldown": 0.15, "speed": 500.0, "count": 1, "spread": 0.0,  "piercing": false, "auto": false},
+	"shotgun": {"damage": 1, "cooldown": 0.5,  "speed": 400.0, "count": 5, "spread": 0.4,  "piercing": false, "auto": false},
+	"sniper":  {"damage": 5, "cooldown": 1.0,  "speed": 800.0, "count": 1, "spread": 0.0,  "piercing": true,  "auto": false},
+	"assault": {"damage": 1, "cooldown": 0.08, "speed": 450.0, "count": 1, "spread": 0.06, "piercing": false, "auto": true},
+	"minigun": {"damage": 1, "cooldown": 0.04, "speed": 400.0, "count": 1, "spread": 0.15, "piercing": false, "auto": true},
+	"rocket":  {"damage": 8, "cooldown": 1.8,  "speed": 280.0, "count": 1, "spread": 0.0,  "piercing": false, "auto": false},
 }
 
 var base_weapon_data := {}
@@ -39,6 +44,13 @@ var fire_rate_buff_active := false
 var grenade_scene : PackedScene
 var can_grenade := true
 var grenade_cooldown := 2.0
+
+# ==================== MINE ====================
+
+var can_mine := true
+var mine_cooldown := 4.0
+var mine_damage := 5
+var mine_radius := 45.0
 
 # ==================== HEALTH ====================
 
@@ -79,10 +91,16 @@ func _ready() -> void:
 
 # ==================== GAME LOOP ====================
 
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta) -> void:
 	if is_dashing:
 		move_and_slide()
 		return
+	
+	# Minigun slows player while firing
+	if current_weapon == "minigun" and is_firing:
+		speed = base_speed * 0.35
+	else:
+		speed = base_speed
 	
 	velocity = direction * speed
 	move_and_slide()
@@ -90,6 +108,10 @@ func _physics_process(delta: float) -> void:
 	# Rotate sprite toward mouse
 	var mouse_pos = get_global_mouse_position()
 	sprite.rotation = global_position.angle_to_point(mouse_pos)
+
+	# Auto-fire weapons (assault, minigun)
+	if can_shoot and weapon_data[current_weapon]["auto"] and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_shoot()
 
 # ==================== INPUT ====================
 
@@ -111,29 +133,43 @@ func _input(event: InputEvent) -> void:
 			_set_weapon(1)
 		elif event.keycode == KEY_3:
 			_set_weapon(2)
+		elif event.keycode == KEY_4:
+			_set_weapon(3)
+		elif event.keycode == KEY_5:
+			_set_weapon(4)
+		elif event.keycode == KEY_6:
+			_set_weapon(5)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
+		# Non-auto weapons fire on click
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed and can_shoot:
 			_shoot()
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed and can_grenade:
 			_throw_grenade()
+		# Track firing state for auto weapons
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			is_firing = event.pressed
 	
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_SPACE and can_dash and direction != Vector2.ZERO:
 			_dash()
+		elif event.keycode == KEY_F and can_mine:
+			_place_mine()
 
 # ==================== WEAPONS ====================
 
 func _switch_weapon(dir: int) -> void:
 	weapon_index = wrapi(weapon_index + dir, 0, weapons.size())
 	current_weapon = weapons[weapon_index]
+	is_firing = false
 	_notify_weapon_change()
 
 func _set_weapon(index: int) -> void:
 	if index >= 0 and index < weapons.size():
 		weapon_index = index
 		current_weapon = weapons[weapon_index]
+		is_firing = false
 		_notify_weapon_change()
 
 func _notify_weapon_change() -> void:
@@ -156,11 +192,21 @@ func _shoot() -> void:
 		
 		if bullet.has_method("set_piercing"):
 			bullet.set_piercing(data["piercing"])
+			
+		# Set bullet type for rockets
+		if current_weapon == "rocket":
+			bullet.set_type("rocket")
+		else:
+			bullet.set_type("player")
 		
 		# Calculate spread angle for multi-bullet weapons
 		var angle_offset := 0.0
 		if data["count"] > 1:
 			angle_offset = lerp(-data["spread"] / 2.0, data["spread"] / 2.0, float(i) / (data["count"] - 1))
+		
+		# Add random spread for auto weapons
+		if data["spread"] > 0 and data["count"] == 1:
+			angle_offset = randf_range(-data["spread"], data["spread"])
 		
 		var final_angle = base_angle + angle_offset
 		get_parent().add_child(bullet)
@@ -192,6 +238,96 @@ func _throw_grenade() -> void:
 	
 	await get_tree().create_timer(grenade_cooldown).timeout
 	can_grenade = true
+
+# ==================== MINE ====================
+
+func _place_mine() -> void:
+	can_mine = false
+	
+	var mine = Area2D.new()
+	mine.global_position = global_position
+	mine.collision_layer = 0
+	mine.collision_mask = 2  # detect enemies
+	
+	# Visual: small dark disc
+	var visual = Node2D.new()
+	mine.add_child(visual)
+	
+	var col = CollisionShape2D.new()
+	var shape = CircleShape2D.new()
+	shape.radius = 12.0
+	col.shape = shape
+	mine.add_child(col)
+	
+	# Mine script
+	var script = GDScript.new()
+	script.source_code = """extends Area2D
+
+var armed := false
+var mine_damage := 5
+var mine_radius := 45.0
+var lifetime := 0.0
+
+func _ready() -> void:
+	body_entered.connect(_on_body_entered)
+	# Arm after short delay
+	await get_tree().create_timer(0.5).timeout
+	armed = true
+
+func _physics_process(delta: float) -> void:
+	lifetime += delta
+	# Despawn after 15 seconds
+	if lifetime > 15.0:
+		queue_free()
+
+func _draw() -> void:
+	# Draw mine visual
+	draw_circle(Vector2.ZERO, 6, Color(0.3, 0.3, 0.3))
+	draw_circle(Vector2.ZERO, 3, Color(0.8, 0.2, 0.2) if armed else Color(0.5, 0.5, 0.5))
+	draw_arc(Vector2.ZERO, 6, 0, TAU, 16, Color(0.5, 0.5, 0.5), 1.0)
+
+func _on_body_entered(body: Node2D) -> void:
+	if not armed:
+		return
+	if not body.is_in_group(\"enemy\"):
+		return
+	_explode()
+
+func _explode() -> void:
+	var main = get_tree().current_scene
+	
+	# AoE damage to all enemies in radius
+	for enemy in get_tree().get_nodes_in_group(\"enemy\"):
+		if is_instance_valid(enemy) and global_position.distance_to(enemy.global_position) <= mine_radius:
+			if enemy.has_method(\"take_damage\"):
+				var dist = global_position.distance_to(enemy.global_position)
+				var falloff = 1.0 - (dist / mine_radius) * 0.5
+				enemy.take_damage(int(mine_damage * falloff))
+	
+	# Self-damage to player
+	var player = get_tree().get_first_node_in_group(\"player\")
+	if player and is_instance_valid(player):
+		var dist = global_position.distance_to(player.global_position)
+		if dist <= mine_radius and player.has_method(\"take_damage\"):
+			var falloff = 1.0 - (dist / mine_radius) * 0.5
+			player.take_damage(int(mine_damage * falloff))
+		if player.has_method(\"shake_camera\"):
+			player.shake_camera(5.0, 0.2)
+	
+	Effects.spawn_explosion(main, global_position, mine_radius)
+	queue_free()
+"""
+	script.reload()
+	mine.set_script(script)
+	mine.mine_damage = mine_damage
+	mine.mine_radius = mine_radius
+	
+	get_parent().add_child(mine)
+	
+	_play_sound(shoot_sound, -15)
+	
+	await get_tree().create_timer(mine_cooldown).timeout
+	can_mine = true
 
 # ==================== DASH ====================
 

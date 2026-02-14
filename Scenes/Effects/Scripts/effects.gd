@@ -2,7 +2,7 @@ extends Node
 
 # ==================== ENEMY DEATH PARTICLES ====================
 
-static func spawn_death(scene_root: Node, pos: Vector2, color: Color = Color.RED) -> void:
+func spawn_death(scene_root: Node, pos: Vector2, color: Color = Color.RED) -> void:
 	var particles = CPUParticles2D.new()
 	particles.global_position = pos
 	particles.emitting = true
@@ -26,7 +26,7 @@ static func spawn_death(scene_root: Node, pos: Vector2, color: Color = Color.RED
 
 # ==================== BULLET IMPACT PARTICLES ====================
 
-static func spawn_impact(scene_root: Node, pos: Vector2) -> void:
+func spawn_impact(scene_root: Node, pos: Vector2) -> void:
 	var particles = CPUParticles2D.new()
 	particles.global_position = pos
 	particles.emitting = true
@@ -48,7 +48,7 @@ static func spawn_impact(scene_root: Node, pos: Vector2) -> void:
 
 # ==================== EXPLOSION PARTICLES ====================
 
-static func spawn_explosion(scene_root: Node, pos: Vector2, radius: float = 40.0) -> void:
+func spawn_explosion(scene_root: Node, pos: Vector2, radius: float = 40.0) -> void:
 	# Fire particles
 	var fire = CPUParticles2D.new()
 	fire.global_position = pos

@@ -29,6 +29,7 @@ var weapon_icon : TextureRect
 var weapon_label : Label
 var grenade_icon : TextureRect
 var dash_icon : TextureRect
+var mine_icon : TextureRect
 var wave_label : Label
 var score_display : Label
 
@@ -43,8 +44,13 @@ var icon_heart_empty = preload("res://Scenes/Main/HUD/Sprites/icon_heart_empty.p
 var icon_pistol = preload("res://Scenes/Main/HUD/Sprites/icon_pistol.png")
 var icon_shotgun = preload("res://Scenes/Main/HUD/Sprites/icon_shotgun.png")
 var icon_sniper = preload("res://Scenes/Main/HUD/Sprites/icon_sniper.png")
+var icon_assault = preload("res://Scenes/Main/HUD/Sprites/icon_assault.png")
+var icon_minigun = preload("res://Scenes/Main/HUD/Sprites/icon_minigun.png")
+var icon_rocket = preload("res://Scenes/Main/HUD/Sprites/icon_rocket.png")
 var icon_grenade = preload("res://Scenes/Main/HUD/Sprites/icon_grenade.png")
 var icon_dash = preload("res://Scenes/Main/HUD/Sprites/icon_dash.png")
+var icon_mine = preload("res://Scenes/Main/HUD/Sprites/icon_mine.png")
+
 
 # ==================== NODE REFERENCES ====================
 
@@ -169,6 +175,13 @@ func _create_hud() -> void:
 	dash_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	hud.add_child(dash_icon)
 	
+	# Mine
+	mine_icon = TextureRect.new()
+	mine_icon.texture = icon_mine
+	mine_icon.stretch_mode = TextureRect.STRETCH_KEEP
+	mine_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hud.add_child(mine_icon)
+	
 	_add_separator(hud)
 	
 	# Wave
@@ -205,16 +218,23 @@ func _update_hud() -> void:
 	for i in hearts_container.get_child_count():
 		var h = hearts_container.get_child(i) as TextureRect
 		h.texture = icon_heart if i < player.health else icon_heart_empty
-	
+
 	# Weapon icon and name
-	var weapon_icons := {"pistol": icon_pistol, "shotgun": icon_shotgun, "sniper": icon_sniper}
-	var weapon_names := {"pistol": "Pistol", "shotgun": "Shotgun", "sniper": "Sniper"}
+	var weapon_icons := {
+		"pistol": icon_pistol, "shotgun": icon_shotgun, "sniper": icon_sniper,
+		"assault": icon_assault, "minigun": icon_minigun, "rocket": icon_rocket,
+	}
+	var weapon_names := {
+		"pistol": "Pistol", "shotgun": "Shotgun", "sniper": "Sniper",
+		"assault": "Assault", "minigun": "Minigun", "rocket": "Rocket",
+	}
 	weapon_icon.texture = weapon_icons.get(current_weapon_name, icon_pistol)
 	weapon_label.text = weapon_names.get(current_weapon_name, "")
 	
-	# Grenade and dash cooldowns
+	# Grenade, dash, mine cooldowns
 	grenade_icon.modulate = Color.WHITE if player.can_grenade else Color(1, 1, 1, 0.3)
 	dash_icon.modulate = Color.WHITE if player.can_dash else Color(1, 1, 1, 0.3)
+	mine_icon.modulate = Color.WHITE if player.can_mine else Color(1, 1, 1, 0.3)
 	
 	# Wave display
 	if between_waves:
@@ -260,7 +280,7 @@ func on_boss_killed() -> void:
 
 # ==================== GAME LOOP ====================
 
-func _process(delta: float) -> void:
+func _process(_delta) -> void:
 	if is_game_over:
 		return
 	

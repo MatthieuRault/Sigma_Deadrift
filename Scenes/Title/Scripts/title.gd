@@ -19,39 +19,40 @@ func _create_background() -> void:
 # ==================== TITLE ====================
 
 func _create_title() -> void:
-	var vbox = VBoxContainer.new()
-	vbox.anchor_left = 0.5
-	vbox.anchor_right = 0.5
-	vbox.anchor_top = 0.2
-	vbox.offset_left = -150
-	vbox.offset_right = 150
-	vbox.add_theme_constant_override("separation", 8)
-	add_child(vbox)
-	
-	# Game title
 	var title = Label.new()
-	title.text = "MINI SHOOTER"
-	title.add_theme_font_size_override("font_size", 32)
+	title.text = "SIGMA"
+	title.add_theme_font_size_override("font_size", 36)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(title)
 	title.anchor_left = 0.5
 	title.anchor_right = 0.5
-	title.anchor_top = 0.15
+	title.anchor_top = 0.12
 	title.offset_left = -150
 	title.offset_right = 150
 	
-	# Subtitle
 	var subtitle = Label.new()
-	subtitle.text = "SURVIVRE AUX VAGUES"
-	subtitle.add_theme_font_size_override("font_size", 14)
+	subtitle.text = "DEADRIFT"
+	subtitle.add_theme_font_size_override("font_size", 20)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.modulate = Color(1, 1, 1, 0.5)
+	subtitle.modulate = Color(0.8, 0.3, 0.3)
 	add_child(subtitle)
 	subtitle.anchor_left = 0.5
 	subtitle.anchor_right = 0.5
-	subtitle.anchor_top = 0.28
+	subtitle.anchor_top = 0.24
 	subtitle.offset_left = -150
 	subtitle.offset_right = 150
+	
+	var tagline = Label.new()
+	tagline.text = "La faille s'ouvre. Les morts se relèvent. Tu es le dernier."
+	tagline.add_theme_font_size_override("font_size", 10)
+	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tagline.modulate = Color(1, 1, 1, 0.4)
+	add_child(tagline)
+	tagline.anchor_left = 0.5
+	tagline.anchor_right = 0.5
+	tagline.anchor_top = 0.32
+	tagline.offset_left = -200
+	tagline.offset_right = 200
 
 # ==================== MENU ====================
 
@@ -65,23 +66,20 @@ func _create_menu() -> void:
 	vbox.add_theme_constant_override("separation", 12)
 	add_child(vbox)
 	
-	# Play button
 	var play_btn = Button.new()
 	play_btn.text = "JOUER"
 	play_btn.add_theme_font_size_override("font_size", 18)
 	play_btn.pressed.connect(_on_play)
 	vbox.add_child(play_btn)
 	
-	# Quit button
 	var quit_btn = Button.new()
 	quit_btn.text = "QUITTER"
 	quit_btn.add_theme_font_size_override("font_size", 18)
 	quit_btn.pressed.connect(_on_quit)
 	vbox.add_child(quit_btn)
 	
-	# Controls info
 	var controls = Label.new()
-	controls.text = "ZQSD - Déplacement  |  LMB - Tir  |  RMB - Grenade\nSpace - Dash  |  1/2/3 - Weapons  |  Scroll - Switch"
+	controls.text = "ZQSD - Move  |  LMB - Shoot  |  RMB - Grenade  |  F - Mine\nSpace - Dash  |  1-6 - Weapons  |  Scroll - Switch"
 	controls.add_theme_font_size_override("font_size", 10)
 	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	controls.modulate = Color(1, 1, 1, 0.4)
