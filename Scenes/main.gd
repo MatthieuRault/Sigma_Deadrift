@@ -1,11 +1,34 @@
 extends Node2D
 
+# HUD icons
+var icon_heart = preload("res://Scenes/Main/HUD/Sprites/icon_heart.png")
+var icon_heart_empty = preload("res://Scenes/Main/HUD/Sprites/icon_heart_empty.png")
+var icon_pistol = preload("res://Scenes/Main/HUD/Sprites/icon_pistol.png")
+var icon_shotgun = preload("res://Scenes/Main/HUD/Sprites/icon_shotgun.png")
+var icon_sniper = preload("res://Scenes/Main/HUD/Sprites/icon_sniper.png")
+var icon_grenade = preload("res://Scenes/Main/HUD/Sprites/icon_grenade.png")
+var icon_dash = preload("res://Scenes/Main/HUD/Sprites/icon_dash.png")
+
+# HUD nodes
+var hearts_container : HBoxContainer
+var weapon_icon : TextureRect
+var weapon_label : Label
+var grenade_icon : TextureRect
+var dash_icon : TextureRect
+var wave_label : Label
+var score_display : Label
+
+# Map
 var map_size := Vector2(960, 540)
+
+# Game state
 var score := 0
 var is_game_over := false
 var enemy_scene = preload("res://Scenes/Main/Enemy/enemy.tscn")
 @onready var score_label = $CanvasLayer/MarginContainer/Label
 var gameover_sound = preload("res://Sounds/game_over.wav")
+
+# Wave system
 var current_wave := 0
 var enemies_to_spawn := 0
 var enemies_alive := 0
@@ -14,15 +37,19 @@ var between_waves := false
 var boss_alive := false
 var spawn_interval := 1.0
 
+# Weapon display
+var current_weapon_name := "pistol"
+
 func _ready() -> void:
 	$Timer.timeout.connect(_on_timer_timeout)
 	$Timer.stop()
 	create_obstacles()
 	create_walls()
+	create_hud()
 	await get_tree().create_timer(1.0).timeout
 	start_next_wave()
 
-# Spawn obstacles - predefined positions
+# Spawn obstacles at predefined positions
 func create_obstacles() -> void:
 	var crate_texture = preload("res://Scenes/Main/Sprites/crate.png")
 	var obstacle_positions = [
@@ -50,11 +77,10 @@ func create_obstacles() -> void:
 		body.position = pos
 		add_child(body)
 
-# Spawn walls
+# Spawn visible walls around the map borders
 func create_walls() -> void:
 	var thickness = 16.0
 	
-	# Position and size for each walls
 	var walls = [
 		{"pos": Vector2(map_size.x / 2, thickness / 2), "size": Vector2(map_size.x, thickness)},
 		{"pos": Vector2(map_size.x / 2, map_size.y - thickness / 2), "size": Vector2(map_size.x, thickness)},
@@ -71,7 +97,7 @@ func create_walls() -> void:
 		shape.size = w["size"]
 		col.shape = shape
 		
-		# Walls visual
+		# Wall visual using tiled brick texture
 		sprite.region_enabled = true
 		sprite.region_rect = Rect2(Vector2.ZERO, w["size"])
 		sprite.texture = preload("res://Scenes/Main/Sprites/wall_brick.png")
@@ -84,6 +110,129 @@ func create_walls() -> void:
 		body.add_child(col)
 		add_child(body)
 
+# ==================== HUD ====================
+
+func create_hud() -> void:
+	# Main container
+	var hud = HBoxContainer.new()
+	hud.anchor_right = 1.0
+	hud.offset_left = 8
+	hud.offset_top = 6
+	hud.offset_right = -8
+	hud.add_theme_constant_override("separation", 12)
+	$CanvasLayer.add_child(hud)
+	
+	# === Hearts ===
+	hearts_container = HBoxContainer.new()
+	hearts_container.add_theme_constant_override("separation", 2)
+	hud.add_child(hearts_container)
+	
+	for i in 5:
+		var h = TextureRect.new()
+		h.texture = icon_heart
+		h.stretch_mode = TextureRect.STRETCH_KEEP
+		h.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		hearts_container.add_child(h)
+	
+	_add_separator(hud)
+	
+	# === Weapon ===
+	weapon_icon = TextureRect.new()
+	weapon_icon.texture = icon_pistol
+	weapon_icon.stretch_mode = TextureRect.STRETCH_KEEP
+	weapon_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hud.add_child(weapon_icon)
+	
+	weapon_label = Label.new()
+	weapon_label.text = "Pistol"
+	weapon_label.add_theme_font_size_override("font_size", 14)
+	hud.add_child(weapon_label)
+	
+	_add_separator(hud)
+	
+	# === Grenade ===
+	grenade_icon = TextureRect.new()
+	grenade_icon.texture = icon_grenade
+	grenade_icon.stretch_mode = TextureRect.STRETCH_KEEP
+	grenade_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hud.add_child(grenade_icon)
+	
+	# === Dash ===
+	dash_icon = TextureRect.new()
+	dash_icon.texture = icon_dash
+	dash_icon.stretch_mode = TextureRect.STRETCH_KEEP
+	dash_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hud.add_child(dash_icon)
+	
+	_add_separator(hud)
+	
+	# === Wave ===
+	wave_label = Label.new()
+	wave_label.text = "Wave 1"
+	wave_label.add_theme_font_size_override("font_size", 14)
+	hud.add_child(wave_label)
+	
+	# === Score ===
+	var spacer = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hud.add_child(spacer)
+	
+	score_display = Label.new()
+	score_display.text = "Score: 0"
+	score_display.add_theme_font_size_override("font_size", 14)
+	hud.add_child(score_display)
+		
+	score_label.visible = false
+
+func _add_separator(parent: Node) -> void:
+	var sep = Label.new()
+	sep.text = "|"
+	sep.add_theme_font_size_override("font_size", 14)
+	sep.modulate = Color(1, 1, 1, 0.3)
+	parent.add_child(sep)
+
+# Update HUD icons and labels every frame
+func _update_hud() -> void:
+	var player = get_tree().get_first_node_in_group("player")
+	if not player:
+		return
+	
+	# Hearts
+	for i in hearts_container.get_child_count():
+		var h = hearts_container.get_child(i) as TextureRect
+		h.texture = icon_heart if i < player.health else icon_heart_empty
+	
+	# Weapon
+	var weapon_icons := {"pistol": icon_pistol, "shotgun": icon_shotgun, "sniper": icon_sniper}
+	var weapon_names := {"pistol": "Pistol", "shotgun": "Shotgun", "sniper": "Sniper"}
+	weapon_icon.texture = weapon_icons.get(current_weapon_name, icon_pistol)
+	weapon_label.text = weapon_names.get(current_weapon_name, "")
+	
+	# Grenade cooldown (dimmed when on cooldown)
+	grenade_icon.modulate = Color.WHITE if player.can_grenade else Color(1, 1, 1, 0.3)
+	
+	# Dash cooldown
+	dash_icon.modulate = Color.WHITE if player.can_dash else Color(1, 1, 1, 0.3)
+	
+	# Wave
+	if between_waves:
+		wave_label.text = "Prochaine vague..."
+	elif current_wave % 5 == 0 and boss_alive:
+		wave_label.text = "Vague %s - BOSS!" % current_wave
+		wave_label.modulate = Color.RED
+	else:
+		wave_label.text = "Vague %s" % current_wave
+		wave_label.modulate = Color.WHITE
+	
+	# Score
+	score_display.text = "Score: %s" % score
+
+# Called by player when switching weapons
+func on_weapon_changed(weapon: String) -> void:
+	current_weapon_name = weapon
+
+# ==================== WAVE SYSTEM ====================
+
 func start_next_wave() -> void:
 	current_wave += 1
 	wave_active = true
@@ -94,10 +243,10 @@ func start_next_wave() -> void:
 		enemies_to_spawn = 1
 		boss_alive = true
 	else:
-	# Increase enemy count each wave
+		# Increase enemy count each wave
 		enemies_to_spawn = 5 + current_wave * 3
 	
-	# Increase spawn speed for higher waves
+	# Faster spawns in later waves
 	spawn_interval = max(0.3, 1.2 - current_wave * 0.05)
 	$Timer.wait_time = spawn_interval
 	$Timer.start()
@@ -107,56 +256,52 @@ func _start_intermission() -> void:
 	if not is_game_over:
 		start_next_wave()
 
-# Update UI score and hp
+func on_boss_killed() -> void:
+	boss_alive = false
+
+# ==================== GAME LOOP ====================
+
 func _process(delta: float) -> void:
 	if is_game_over:
 		return
-		
+	
 	# Count alive enemies
 	enemies_alive = get_tree().get_nodes_in_group("enemy").size()
-		
+	
+	# Check if wave is complete
 	if wave_active and enemies_to_spawn <= 0 and enemies_alive <= 0:
 		wave_active = false
 		between_waves = true
 		_start_intermission()
 	
-	# HUD
-	var player = get_tree().get_first_node_in_group("player")
-	if player:
-		var wave_text = ""
-		if between_waves:
-			wave_text = "  |  Prochaine vague..."
-		elif current_wave % 5 == 0 and boss_alive:
-			wave_text = "  |  BOSS !"
-		score_label.text = "Score: %s  |  Vie: %s  |  Vague: %s%s" % [
-			score, player.health, current_wave, wave_text
-		]
-		
-func on_boss_killed() -> void:
-		boss_alive = false
+	_update_hud()
 
-# Restart game
+# Restart game on key press after game over
 func _input(event: InputEvent) -> void:
 	if is_game_over and event is InputEventKey and event.pressed:
 		get_tree().reload_current_scene()
 
 func add_score(amount: int) -> void:
 	score += amount
-	
+
 func game_over() -> void:
 	is_game_over = true
-	score_label.text = "GAME OVER! Score: %s | Wave: %s\nPress any key to restart" % [str(score), str(current_wave)]
-
+	score_label.visible = true
+	score_label.text = "GAME OVER!\n\nScore: %s  |  Vague: %s\n\nAppuyer sur une touche pour relancer" % [score, current_wave]
 	$Timer.stop()
+	
 	var audio = AudioStreamPlayer.new()
 	audio.stream = gameover_sound
 	audio.volume_db = -20
 	add_child(audio)
 	audio.play()
+	
 	# Clear all remaining enemies
 	for enemy in get_tree().get_nodes_in_group("enemy"):
 		enemy.queue_free()
-		
+
+# ==================== ENEMY SPAWNING ====================
+
 func _on_timer_timeout() -> void:
 	if enemies_to_spawn <= 0:
 		$Timer.stop()
@@ -167,19 +312,22 @@ func _on_timer_timeout() -> void:
 	
 	if is_boss_wave:
 		enemy.setup("boss")
+		enemies_to_spawn = 0
+		$Timer.stop()
 	else:
-	# Increase difficulty
+		# Increase difficulty based on wave
 		var rand = randf()
 		var tank_chance = min(0.1 + current_wave * 0.03, 0.35)
 		var fast_chance = min(0.2 + current_wave * 0.02, 0.4)
-	
+		
 		if rand < tank_chance:
 			enemy.setup("tank")
 		elif rand < tank_chance + fast_chance:
 			enemy.setup("fast")
 		else:
 			enemy.setup("normal")
-	# Random spawn at screen edges
+	
+	# Spawn at map edges (inside walls)
 	var side = randi() % 4
 	var margin = 20.0
 	
