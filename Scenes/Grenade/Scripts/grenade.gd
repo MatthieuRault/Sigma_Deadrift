@@ -97,8 +97,15 @@ func _explode() -> void:
 				var falloff = 1.0 - (dist / explosion_radius) * 0.5
 				enemy.take_damage(int(explosion_damage * falloff))
 	
-	# Screen shake
+	
 	var player = get_tree().get_first_node_in_group("player")
+	# Self-damage to player	
+	if player and is_instance_valid(player):
+		var dist = global_position.distance_to(player.global_position)
+		if dist <= explosion_radius and player.has_method("take_damage"):
+			var falloff = 1.0 - (dist / explosion_radius) * 0.5
+			player.take_damage(int(explosion_damage * falloff))
+	# Screen shake
 	if player and player.has_method("shake_camera"):
 		player.shake_camera(8.0, 0.3)
 	
