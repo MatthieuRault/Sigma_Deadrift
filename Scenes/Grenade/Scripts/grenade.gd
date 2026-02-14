@@ -33,6 +33,23 @@ func _physics_process(delta: float) -> void:
 		return
 	
 	global_position += velocity * delta
+	# Bounce off map walls
+	var map_size = Vector2(960, 540)
+	var margin = 16.0
+	
+	if global_position.x < margin:
+		global_position.x = margin
+		velocity.x = -velocity.x
+	elif global_position.x > map_size.x - margin:
+		global_position.x = map_size.x - margin
+		velocity.x = -velocity.x
+	
+	if global_position.y < margin:
+		global_position.y = margin
+		velocity.y = -velocity.y
+	elif global_position.y > map_size.y - margin:
+		global_position.y = map_size.y - margin
+		velocity.y = -velocity.y
 	
 	var t = timer / fuse_time
 	var arc = sin(t * PI)

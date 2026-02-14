@@ -268,6 +268,12 @@ func _process(delta: float) -> void:
 	# Count alive enemies
 	enemies_alive = get_tree().get_nodes_in_group("enemy").size()
 	
+	# Safety: kill enemies stuck outside the map
+	for enemy in get_tree().get_nodes_in_group("enemy"):
+		var pos = enemy.global_position
+		if pos.x < 0 or pos.x > map_size.x or pos.y < 0 or pos.y > map_size.y:
+			enemy.queue_free()
+	
 	# Check if wave is complete
 	if wave_active and enemies_to_spawn <= 0 and enemies_alive <= 0:
 		wave_active = false
@@ -329,7 +335,7 @@ func _on_timer_timeout() -> void:
 	
 	# Spawn at map edges (inside walls)
 	var side = randi() % 4
-	var margin = 20.0
+	var margin = 40.0
 	
 	match side:
 		0: enemy.global_position = Vector2(randf() * map_size.x, margin)
