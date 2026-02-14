@@ -68,89 +68,98 @@ var tex_boss = preload("res://Scenes/Main/Enemy/Sprites/mob_boss.png")
 var powerup_scene = preload("res://Scenes/PowerUp/powerup.tscn")
 var death_sound = preload("res://Sounds/enemy_death.wav")
 
+# ==================== ENEMY DATA ====================
+
+const ENEMY_DATA := {
+	"normal":  { "speed":100.0, "hp":3,  "score":10,  "damage":1, "scale":1.0, "anim":0.15, "tex":"normal" },
+	"fast":    { "speed":200.0, "hp":1,  "score":15,  "damage":1, "scale":0.75, "anim":0.08, "tex":"fast" },
+	"tank":    { "speed":50.0,  "hp":8,  "score":30,  "damage":2, "scale":1.2, "anim":0.25, "tex":"tank" },
+	"ranged":  { "speed":60.0,  "hp":2,  "score":20,  "damage":1, "scale":1.0, "anim":0.15, "tex":"ranged" },
+	"splitter":{ "speed":80.0,  "hp":4,  "score":20,  "damage":1, "scale":1.1, "anim":0.15, "tex":"splitter" },
+	"exploder":{ "speed":130.0, "hp":2,  "score":25,  "damage":1, "scale":1.15, "anim":0.1,  "tex":"exploder" },
+	"ghost":   { "speed":90.0,  "hp":3,  "score":25,  "damage":2, "scale":1.0, "anim":0.15, "tex":"ghost" },
+	"boss":    { "speed":70.0,  "hp":40, "score":100, "damage":3, "scale":2.3, "anim":0.2,  "tex":"boss" }
+}
+
+# ==================== TEXTURES AND COLORS ====================
+
+var TEX := {
+	"normal": tex_normal,
+	"fast": tex_fast,
+	"tank": tex_tank,
+	"ranged": tex_ranged,
+	"splitter": tex_splitter,
+	"exploder": tex_exploder,
+	"ghost": tex_ghost,
+	"boss": tex_boss
+}
+
+var DEATH_COLOR := {
+	"normal": Color(0.2, 0.7, 0.2),
+	"fast": Color(0.2, 0.7, 0.2),
+	"tank": Color(0.2, 0.7, 0.2),
+	"ranged": Color(0.8, 0.2, 1.0),
+	"splitter": Color(0.9, 0.9, 0.7),
+	"exploder": Color(1.0, 0.4, 0.1),
+	"ghost": Color(0.5, 0.5, 0.8),
+	"boss": Color(1.0, 0.3, 0.3)
+}
+
 # ==================== INITIALIZATION ====================
 
 func _ready() -> void:
 	add_to_group("enemy")
 	if not player:
 		player = get_tree().get_first_node_in_group("player")
+		
 
 # Configure stats and appearance based on type
 func setup(type: String) -> void:
 	enemy_type = type
-	match type:
-		"normal":
-			speed = 100.0
-			health = 3
-			score_value = 10
-			damage = 1
-			$Sprite2D.texture = tex_normal
-		"fast":
-			speed = 200.0
-			health = 1
-			score_value = 15
-			damage = 1
-			$Sprite2D.texture = tex_fast
-			anim_speed = 0.08
-		"tank":
-			speed = 50.0
-			health = 8
-			score_value = 30
-			damage = 2
-			$Sprite2D.texture = tex_tank
-			anim_speed = 0.25
-		"ranged":
-			speed = 60.0
-			health = 2
-			score_value = 20
-			damage = 1
-			$Sprite2D.texture = tex_ranged
-		"splitter":
-			speed = 80.0
-			health = 4
-			score_value = 20
-			damage = 1
-			$Sprite2D.texture = tex_splitter
-		"exploder":
-			speed = 130.0
-			health = 2
-			score_value = 25
-			damage = 1
-			$Sprite2D.texture = tex_exploder
-			anim_speed = 0.1
-		"ghost":
-			speed = 90.0
-			health = 3
-			score_value = 25
-			damage = 2
-			$Sprite2D.texture = tex_ghost
-		"boss":
-			speed = 70.0
-			health = 40
-			score_value = 100
-			damage = 3
-			is_boss = true
-			$Sprite2D.texture = tex_boss
-			$Sprite2D.scale = Vector2(3.5, 3.5)
-			$Sprite2D.modulate = Color(1.0, 0.3, 0.3)
-			if $CollisionShape2D.shape is CircleShape2D:
-				$CollisionShape2D.shape = $CollisionShape2D.shape.duplicate()
-				$CollisionShape2D.shape.radius *= 2.0
+	is_boss = (type == "boss")
 	
+	if not ENEMY_DATA.has(type):
+		push_error("Unknown enemy type: " + type)
+		return
+	
+	var data = ENEMY_DATA[type]
+	
+	# ==================== APPLY STATS ====================
+	speed = data["speed"]
+	health = data["hp"]
 	max_health = health
+	score_value = data["score"]
+	damage = data["damage"]
+	anim_speed = data["anim"]
+	
+	# ==================== APPLY TEXTURE ====================
+	$Sprite2D.texture = TEX.get(enemy_type, tex_normal)
+	
+	# ==================== VISUAL SETUP ====================
 	$Sprite2D.hframes = 4
 	$Sprite2D.vframes = 1
 	$Sprite2D.frame = 0
 	
-	if not is_boss:
-		$Sprite2D.scale = Vector2(1.5, 1.5)
+	if is_boss:
+		$Sprite2D.modulate = Color(1.0, 0.3, 0.3)
+	
+	_apply_visual_scale(data["scale"])
+	
+func _apply_visual_scale(base_scale: float) -> void:
 	
 	# Splitter children are smaller
 	if enemy_type == "splitter" and split_level > 0:
-		$Sprite2D.scale = Vector2(0.9, 0.9)
-		if $CollisionShape2D.shape is CircleShape2D:
-			$CollisionShape2D.shape = $CollisionShape2D.shape.duplicate()
-			$CollisionShape2D.shape.radius *= 0.6
+		base_scale *= 0.7
+	
+	# Apply scale to sprite
+	$Sprite2D.scale = Vector2.ONE * base_scale
+	
+	# Adjust collision shape proportionally
+	if $CollisionShape2D.shape is CircleShape2D:
+		var shape = $CollisionShape2D.shape.duplicate()
+		shape.radius *= base_scale
+		$CollisionShape2D.shape = shape
+
 
 # ==================== GAME LOOP ====================
 
@@ -247,54 +256,20 @@ func _process_ranged(delta: float, direction: Vector2, dist: float) -> void:
 		_shoot_projectile(direction)
 
 func _shoot_projectile(direction: Vector2) -> void:
-	var projectile = Area2D.new()
-	projectile.collision_layer = 0
-	projectile.collision_mask = 1  # detect player
+	var bullet_scene = preload("res://Scenes/Bullet/Scripts/bullet.gd")
+	var bullet = bullet_scene.instantiate()
 	
-	# Purple magic bolt visual
-	var color_rect = ColorRect.new()
-	color_rect.size = Vector2(6, 6)
-	color_rect.position = Vector2(-3, -3)
-	color_rect.color = Color(0.8, 0.2, 1.0)
-	projectile.add_child(color_rect)
+	bullet.global_position = global_position
+	bullet.direction = direction
+	bullet.speed = bullet_speed
+	bullet.damage = bullet_damage
+	bullet.piercing = false
 	
-	var col = CollisionShape2D.new()
-	var shape = CircleShape2D.new()
-	shape.radius = 4.0
-	col.shape = shape
-	projectile.add_child(col)
+	# Assure que la boule touche le joueur et les obstacles
+	bullet.collision_layer = 2       # boule
+	bullet.collision_mask = 1 | 16   # 1 = player, 16 = obstacles
 	
-	projectile.global_position = global_position
-	
-	var script = GDScript.new()
-	script.source_code = """extends Area2D
-
-var dir := Vector2.ZERO
-var spd := 200.0
-var dmg := 1
-var lifetime := 0.0
-
-func _physics_process(delta: float) -> void:
-	position += dir * spd * delta
-	lifetime += delta
-	if lifetime > 4.0:
-		queue_free()
-
-func _ready() -> void:
-	body_entered.connect(_on_hit)
-
-func _on_hit(body: Node2D) -> void:
-	if body.is_in_group(\"player\") and body.has_method(\"take_damage\"):
-		body.take_damage(dmg)
-	queue_free()
-"""
-	script.reload()
-	projectile.set_script(script)
-	projectile.dir = direction
-	projectile.spd = bullet_speed
-	projectile.dmg = bullet_damage
-	
-	get_tree().current_scene.add_child(projectile)
+	get_tree().current_scene.add_child(bullet)
 
 # ==================== EXPLODER BEHAVIOR ====================
 
@@ -415,21 +390,7 @@ func _die() -> void:
 	queue_free()
 
 func _get_death_color() -> Color:
-	match enemy_type:
-		"normal", "fast", "tank":
-			return Color(0.2, 0.7, 0.2)  # Green (orcs)
-		"ranged":
-			return Color(0.8, 0.2, 1.0)  # Purple (shaman)
-		"splitter":
-			return Color(0.9, 0.9, 0.7)  # Bone white
-		"exploder":
-			return Color(1.0, 0.4, 0.1)  # Orange fire
-		"ghost":
-			return Color(0.5, 0.5, 0.8)  # Ghostly blue
-		"boss":
-			return Color(1.0, 0.3, 0.3)  # Boss red
-		_:
-			return Color.RED
+	return DEATH_COLOR.get(enemy_type, Color.RED)
 
 func _hit_flash() -> void:
 	var original_color = $Sprite2D.modulate

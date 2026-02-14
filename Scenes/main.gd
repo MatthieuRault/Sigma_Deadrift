@@ -111,7 +111,7 @@ func _create_walls() -> void:
 		sprite.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 		
 		body.collision_layer = 16
-		body.collision_mask = 0
+		body.collision_mask = 1 | 16
 		body.position = w["pos"]
 		body.add_child(sprite)
 		body.add_child(col)
@@ -173,7 +173,7 @@ func _create_hud() -> void:
 	
 	# Wave
 	wave_label = Label.new()
-	wave_label.text = "Wave 1"
+	wave_label.text = "Vague 1"
 	wave_label.add_theme_font_size_override("font_size", 14)
 	hud.add_child(wave_label)
 	
