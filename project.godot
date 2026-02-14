@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="MiniShooter"
+config/name="Sigma : Deadrift"
 run/main_scene="uid://dcu82pwmf5hay"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"

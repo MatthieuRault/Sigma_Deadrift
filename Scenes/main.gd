@@ -33,6 +33,53 @@ var mine_icon : TextureRect
 var wave_label : Label
 var score_display : Label
 
+# ==================== RADIO ====================
+
+var radio_label : Label
+var radio_callsign : Label
+var radio_container : PanelContainer
+var radio_tween : Tween
+var radio_visible := false
+
+var RADIO_MESSAGES := {
+	# === ACT I — PREMIER CONTACT ===
+	1: {"from": "QG OTAN", "msg": "Sigma-7, anomalies sismiques confirmées au col Vrancea. Progressez vers le camp de recherche. Terminé."},
+	2: {"from": "SIGMA-7 LEAD", "msg": "Contact hostile confirmé. Créatures bipèdes, résistantes aux tirs standards. Deux hommes à terre. Demande extraction."},
+	3: {"from": "SIGMA-7 LEAD", "msg": "Négatif extraction. Ils sont organisés. Les gros encaissent pour protéger les rapides. Demande renfort immédiat."},
+	4: {"from": "SIGMA-3", "msg": "Sigma-7, ici Sigma-3. On capte des interférences massives sur toutes les fréquences. Vos coordonnées sont... *statique*"},
+	5: {"from": "SIGMA-7 LEAD", "msg": "Un meneur. Massif. Il dirige les assauts. Si on l'abat, peut-être que les autres se replieront..."},
+	
+	# === ACT II — LES MORTS SE RELÈVENT ===
+	6: {"from": "DERNIER SURVIVANT", "msg": "...l'unité est tombée. Je suis le dernier. Et les corps... les corps de mes hommes... ils bougent encore."},
+	7: {"from": "DERNIER SURVIVANT", "msg": "Nouveaux hostiles. Ils ressemblent à des mages. Lancent des projectiles d'énergie sombre. Ça draine les forces."},
+	8: {"from": "DERNIER SURVIVANT", "msg": "Des formes translucides. Des spectres. Les balles les traversent quand ils disparaissent. Je deviens fou."},
+	9: {"from": "???", "msg": "*statique prolongée* ...la faille... elle s'agrandit... chaque mort la nourrit... vous ne comprenez pas... *signal perdu*"},
+	10: {"from": "DERNIER SURVIVANT", "msg": "Un squelette colossal. Il porte une armure ancienne. La montagne recrache ses guerriers morts depuis des siècles."},
+	
+	# === ACT III — L'ESCALADE ===
+	11: {"from": "DERNIER SURVIVANT", "msg": "La faille pulse comme un coeur. Plus je tue, plus elle s'ouvre. C'est un piège. Un cercle sans fin."},
+	12: {"from": "QG OTAN", "msg": "*signal faible* ...évacuation du secteur impossible... zone de quarantaine établie... frappes aériennes en discussion..."},
+	13: {"from": "DERNIER SURVIVANT", "msg": "Ils arrivent des deux côtés. Orcs par la faille, morts-vivants du sol. Ils ne se combattent pas entre eux."},
+	14: {"from": "DERNIER SURVIVANT", "msg": "J'ai trouvé un dépôt de munitions sous les décombres. Quelqu'un savait. Quelqu'un avait prévu."},
+	15: {"from": "QG OTAN", "msg": "Sigma-7, frappe aérienne refusée. La faille émet un champ magnétique qui dévie les missiles. Vous êtes seul. Désolé."},
+	16: {"from": "DERNIER SURVIVANT", "msg": "Seul. Ça ne change rien. Tant que j'ai des balles, cette faille ne s'étend pas plus loin."},
+	17: {"from": "???", "msg": "*interférence* ...d'autres failles... Oural... Alpes... Andes... *transmission corrompue*"},
+	18: {"from": "DERNIER SURVIVANT", "msg": "Chaque vague plus forte que la précédente. Mais je m'adapte. C'est ce qu'on fait. On s'adapte ou on meurt."},
+	19: {"from": "DERNIER SURVIVANT", "msg": "Si quelqu'un capte ce message... ne venez pas me chercher. Tenez les autres failles. Celle-ci, c'est mon combat."},
+	20: {"from": "QG OTAN", "msg": "Sigma-7... nous perdons le contact avec d'autres unités partout dans le monde. Vous n'êtes pas le seul front. Tenez bon."},
+}
+
+var RADIO_LATE_GAME := [
+	{"from": "DERNIER SURVIVANT", "msg": "Encore une vague. Toujours debout."},
+	{"from": "???", "msg": "*statique* ...ils ne s'arrêteront jamais... la faille est éternelle... *statique*"},
+	{"from": "DERNIER SURVIVANT", "msg": "Les munitions s'épuisent. La faille, jamais."},
+	{"from": "DERNIER SURVIVANT", "msg": "Je ne compte plus les morts. Ni les miens, ni les leurs."},
+	{"from": "???", "msg": "*fragment corrompu* ...de l'autre côté du portail... une armée entière attend... *signal perdu*"},
+	{"from": "DERNIER SURVIVANT", "msg": "Combien de temps encore ? Aucune importance. Ici, le temps n'existe plus."},
+	{"from": "QG OTAN", "msg": "*signal très faible* ...front de l'Oural tombé... Alpes tiennent encore... continuez... *fin de transmission*"},
+	{"from": "DERNIER SURVIVANT", "msg": "Je commence à comprendre leur langage. Les cris des orcs. Les murmures des morts. C'est pas bon signe."},
+]
+
 # ==================== RESOURCES ====================
 
 var enemy_scene = preload("res://Scenes/Main/Enemy/enemy.tscn")
@@ -64,6 +111,8 @@ func _ready() -> void:
 	_create_obstacles()
 	_create_walls()
 	_create_hud()
+	_create_radio_display()
+	_show_radio_message(1)
 	await get_tree().create_timer(1.0).timeout
 	_start_next_wave()
 
@@ -253,12 +302,113 @@ func _update_hud() -> void:
 func on_weapon_changed(weapon: String) -> void:
 	current_weapon_name = weapon
 
+# ==================== RADIO DISPLAY ====================
+
+func _create_radio_display() -> void:
+	radio_container = PanelContainer.new()
+	radio_container.anchor_left = 0.1
+	radio_container.anchor_right = 0.9
+	radio_container.anchor_top = 0.78
+	radio_container.anchor_bottom = 0.95
+	
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.08, 0.05, 0.85)
+	style.border_color = Color(0.2, 0.4, 0.2, 0.6)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(2)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 4
+	style.content_margin_bottom = 4
+	radio_container.add_theme_stylebox_override("panel", style)
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 2)
+	radio_container.add_child(vbox)
+	
+	radio_callsign = Label.new()
+	radio_callsign.add_theme_font_size_override("font_size", 9)
+	radio_callsign.modulate = Color(0.3, 0.8, 0.3)
+	vbox.add_child(radio_callsign)
+	
+	radio_label = Label.new()
+	radio_label.add_theme_font_size_override("font_size", 11)
+	radio_label.modulate = Color(0.7, 0.9, 0.7)
+	radio_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(radio_label)
+	
+	$CanvasLayer.add_child(radio_container)
+	radio_container.visible = false
+
+func _show_radio_message(wave: int) -> void:
+	var data : Dictionary
+	
+	if RADIO_MESSAGES.has(wave):
+		data = RADIO_MESSAGES[wave]
+	elif wave > 20:
+		data = RADIO_LATE_GAME[(wave - 21) % RADIO_LATE_GAME.size()]
+	else:
+		return
+	
+	radio_callsign.text = "[RADIO — %s]" % data["from"]
+	radio_label.text = ""
+	radio_container.visible = true
+	radio_container.modulate = Color(1, 1, 1, 0)
+	radio_visible = true
+	
+	# Fade in
+	if radio_tween:
+		radio_tween.kill()
+	radio_tween = create_tween()
+	radio_tween.tween_property(radio_container, "modulate", Color(1, 1, 1, 1), 0.3)
+	await radio_tween.finished
+	
+	# Typewriter effect
+	var full_text = data["msg"]
+	for i in full_text.length():
+		if not radio_visible:
+			break
+		radio_label.text = full_text.substr(0, i + 1)
+		
+		var c = full_text[i]
+		if c == "." or c == "!" or c == "?":
+			await get_tree().create_timer(0.12).timeout
+		elif c == "," or c == ":":
+			await get_tree().create_timer(0.06).timeout
+		elif c == "*":
+			await get_tree().create_timer(0.04).timeout
+		else:
+			await get_tree().create_timer(0.02).timeout
+	
+	# Hold
+	var hold_time = clamp(full_text.length() * 0.04, 2.5, 6.0)
+	await get_tree().create_timer(hold_time).timeout
+	
+	# Fade out
+	if is_instance_valid(radio_container) and radio_visible:
+		radio_tween = create_tween()
+		radio_tween.tween_property(radio_container, "modulate", Color(1, 1, 1, 0), 0.5)
+		await radio_tween.finished
+		if is_instance_valid(radio_container):
+			radio_container.visible = false
+			
+	radio_visible = false
+
+func _hide_radio() -> void:
+	radio_visible = false
+	
+	if is_instance_valid(radio_container):
+		radio_container.visible = false
+	
+	if radio_tween:
+		radio_tween.kill()
+
 # ==================== WAVE SYSTEM ====================
 
 func _start_next_wave() -> void:
 	current_wave += 1
 	wave_active = true
-	between_waves = false
+	between_waves = false	
 	
 	if current_wave % 5 == 0:
 		enemies_to_spawn = 1
@@ -271,8 +421,11 @@ func _start_next_wave() -> void:
 	$Timer.start()
 
 func _start_intermission() -> void:
-	await get_tree().create_timer(2.0).timeout
+	between_waves = true
+	await _show_radio_message(current_wave)
+	
 	if not is_game_over:
+		await get_tree().create_timer(1.0).timeout
 		_start_next_wave()
 
 func on_boss_killed() -> void:
@@ -306,6 +459,9 @@ func add_score(amount: int) -> void:
 	score += amount
 
 func _input(event: InputEvent) -> void:
+	if radio_visible and event.is_action_pressed("ui_accept"):
+		_hide_radio()
+		return
 	if is_game_over and event is InputEventKey and event.pressed:
 		get_tree().change_scene_to_file("res://Scenes/Title/title.tscn")
 
