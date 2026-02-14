@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bej83l05vn0yr"
-path="res://.godot/imported/enemy_tank.png-da285ee34de6089c807a82a00102b7ba.ctex"
+uid="uid://bd6qeontfe6r8"
+path="res://.godot/imported/mob_splitter.png-85305243b4400ca63c68b0179586df17.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Scenes/Main/Enemy/Sprites/enemy_tank.png"
-dest_files=["res://.godot/imported/enemy_tank.png-da285ee34de6089c807a82a00102b7ba.ctex"]
+source_file="res://Scenes/Main/Enemy/Sprites/mob_splitter.png"
+dest_files=["res://.godot/imported/mob_splitter.png-85305243b4400ca63c68b0179586df17.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://desxhyxqn7qoj"
-path="res://.godot/imported/Character_Idle.png-8c937d2239304087e9a087ff5e483dd5.ctex"
+uid="uid://bu1jjvybqes3q"
+path="res://.godot/imported/mob_ghost.png-bd274c54d0ead5821a65029b97534ef6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Scenes/Main/Enemy/Sprites/Character_Idle.png"
-dest_files=["res://.godot/imported/Character_Idle.png-8c937d2239304087e9a087ff5e483dd5.ctex"]
+source_file="res://Scenes/Main/Enemy/Sprites/mob_ghost.png"
+dest_files=["res://.godot/imported/mob_ghost.png-bd274c54d0ead5821a65029b97534ef6.ctex"]
 
 [params]
 

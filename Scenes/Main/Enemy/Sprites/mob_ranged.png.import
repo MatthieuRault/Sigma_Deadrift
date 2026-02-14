@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dan3v0q4658l1"
-path="res://.godot/imported/enemy_normal.png-5ccb303b87116971c0101b00a7ad7dec.ctex"
+uid="uid://cofu1f77ye8io"
+path="res://.godot/imported/mob_ranged.png-a2b0ebd6e839802ab6dfd45fbf0c41ef.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Scenes/Main/Enemy/Sprites/enemy_normal.png"
-dest_files=["res://.godot/imported/enemy_normal.png-5ccb303b87116971c0101b00a7ad7dec.ctex"]
+source_file="res://Scenes/Main/Enemy/Sprites/mob_ranged.png"
+dest_files=["res://.godot/imported/mob_ranged.png-a2b0ebd6e839802ab6dfd45fbf0c41ef.ctex"]
 
 [params]
 

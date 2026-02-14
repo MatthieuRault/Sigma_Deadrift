@@ -212,7 +212,7 @@ func _update_hud() -> void:
 	weapon_icon.texture = weapon_icons.get(current_weapon_name, icon_pistol)
 	weapon_label.text = weapon_names.get(current_weapon_name, "")
 	
-	# Grenade and dash cooldowns (dimmed when on cooldown)
+	# Grenade and dash cooldowns
 	grenade_icon.modulate = Color.WHITE if player.can_grenade else Color(1, 1, 1, 0.3)
 	dash_icon.modulate = Color.WHITE if player.can_dash else Color(1, 1, 1, 0.3)
 	
@@ -230,7 +230,6 @@ func _update_hud() -> void:
 	# Score
 	score_display.text = "Score: %s" % score
 
-# Called by player when switching weapons
 func on_weapon_changed(weapon: String) -> void:
 	current_weapon_name = weapon
 
@@ -307,6 +306,59 @@ func game_over() -> void:
 
 # ==================== ENEMY SPAWNING ====================
 
+func _get_available_types() -> Array:
+	var types := ["normal"]
+	
+	if current_wave >= 2:
+		types.append("fast")
+	if current_wave >= 3:
+		types.append("tank")
+	if current_wave >= 4:
+		types.append("ranged")
+	if current_wave >= 6:
+		types.append("splitter")
+	if current_wave >= 7:
+		types.append("exploder")
+	if current_wave >= 8:
+		types.append("ghost")
+	
+	return types
+
+# Weighted random selection from available types
+func _pick_enemy_type() -> String:
+	var types = _get_available_types()
+	
+	# Base weights for each type
+	var weights := {
+		"normal": 30,
+		"fast": 25,
+		"tank": 10,
+		"ranged": 15,
+		"splitter": 10,
+		"exploder": 8,
+		"ghost": 8,
+	}
+	
+	# Scale down normal weight as more types unlock
+	if types.size() > 4:
+		weights["normal"] = 20
+	if types.size() > 6:
+		weights["normal"] = 15
+	
+	# Build weighted pool
+	var pool := []
+	var total := 0.0
+	for t in types:
+		total += weights.get(t, 10)
+		pool.append({"type": t, "cumulative": total})
+	
+	var roll = randf() * total
+	for entry in pool:
+		if roll <= entry["cumulative"]:
+			return entry["type"]
+	
+	return "normal"
+
 func _on_timer_timeout() -> void:
 	if enemies_to_spawn <= 0:
 		$Timer.stop()
@@ -319,18 +371,9 @@ func _on_timer_timeout() -> void:
 		enemies_to_spawn = 0
 		$Timer.stop()
 	else:
-		var rand = randf()
-		var tank_chance = min(0.1 + current_wave * 0.03, 0.35)
-		var fast_chance = min(0.2 + current_wave * 0.02, 0.4)
-		
-		if rand < tank_chance:
-			enemy.setup("tank")
-		elif rand < tank_chance + fast_chance:
-			enemy.setup("fast")
-		else:
-			enemy.setup("normal")
+		enemy.setup(_pick_enemy_type())
 	
-	# Spawn inside map walls
+	# Spawn at map edges
 	var side = randi() % 4
 	var margin = 40.0
 	
