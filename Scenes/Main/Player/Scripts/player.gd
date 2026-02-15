@@ -214,6 +214,10 @@ func _shoot() -> void:
 		bullet.global_position = global_position + Vector2.RIGHT.rotated(final_angle) * 20
 		bullet.rotation = final_angle
 	
+	# Muzzle flash
+	var flash_pos = global_position + Vector2.RIGHT.rotated(base_angle) * 20
+	Effects.spawn_muzzle_flash(get_parent(), flash_pos, base_angle)
+	
 	# Animation and sound
 	sprite.play("shoot")
 	_play_sound(shoot_sound, -10)

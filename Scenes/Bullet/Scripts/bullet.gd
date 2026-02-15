@@ -15,6 +15,12 @@ var source_enemy : Node = null
 var is_rocket := false
 var rocket_radius := 55.0
 
+# ==================== TRAIL ====================
+
+var trail : Line2D
+var trail_length := 6
+var trail_points : Array[Vector2] = []
+
 # ==================== INITIALIZATION ====================
 
 func set_type(type: String) -> void:
@@ -41,11 +47,48 @@ func set_type(type: String) -> void:
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
+	_setup_trail()
+
+# ==================== TRAIL SETUP ====================
+
+func _setup_trail() -> void:
+	trail = Line2D.new()
+	trail.width = 2.0
+	trail.z_index = -1
+	
+	# Trail color matches bullet type
+	var trail_color := Color(1.0, 0.9, 0.5, 0.6)
+	match bullet_type:
+		"shaman":
+			trail_color = Color(0.3, 0.7, 1.0, 0.5)
+			trail.width = 1.5
+		"necromancer":
+			trail_color = Color(0.6, 0.1, 0.8, 0.4)
+			trail.width = 2.5
+		"rocket":
+			trail_color = Color(1.0, 0.5, 0.1, 0.7)
+			trail.width = 3.0
+			trail_length = 10
+	
+	var gradient = Gradient.new()
+	gradient.set_color(0, Color(trail_color.r, trail_color.g, trail_color.b, 0.0))
+	gradient.set_color(1, trail_color)
+	trail.gradient = gradient
+	
+	get_tree().current_scene.add_child.call_deferred(trail)
 
 # ==================== GAME LOOP ====================
 
 func _physics_process(delta: float) -> void:
 	position += Vector2.RIGHT.rotated(rotation) * speed * delta
+	
+	if is_instance_valid(trail):
+		trail_points.append(global_position)
+		if trail_points.size() > trail_length:
+			trail_points.remove_at(0)
+		trail.clear_points()
+		for p in trail_points:
+			trail.add_point(p)
 
 # ==================== PIERCING ====================
 
@@ -64,8 +107,10 @@ func _on_body_entered(body: Node2D) -> void:
 	
 	if body.has_method("take_damage"):
 		body.take_damage(damage)
-	
-	# Necromancer drain
+	# Hit marker on enemies
+		if bullet_type == "player" and body.is_in_group("enemy"):
+			Effects.spawn_hit_marker(get_tree().current_scene, global_position, damage)
+		# Necromancer drain
 		if bullet_type == "necromancer" and body.is_in_group("player"):
 			if is_instance_valid(source_enemy) and source_enemy.has_method("on_drain_hit"):
 				source_enemy.on_drain_hit()
@@ -73,8 +118,10 @@ func _on_body_entered(body: Node2D) -> void:
 	if piercing:
 		hits += 1
 		if hits >= max_pierce:
+			_cleanup_trail()
 			queue_free()
 	else:
+		_cleanup_trail()
 		queue_free()
 		
 # ==================== ROCKET EXPLOSION ====================
@@ -103,7 +150,17 @@ func _rocket_explode() -> void:
 	# Big explosion VFX
 	Effects.spawn_explosion(main, global_position, rocket_radius)
 	
+	_cleanup_trail()
 	queue_free()
 
+# ==================== CLEANUP ====================
+
+func _cleanup_trail() -> void:
+	if is_instance_valid(trail):
+		var tween = trail.create_tween()
+		tween.tween_property(trail, "modulate:a", 0.0, 0.15)
+		tween.tween_callback(trail.queue_free)
+
 func _on_screen_exited() -> void:
+	_cleanup_trail()
 	queue_free()
