@@ -23,16 +23,18 @@ var spawn_interval := 1.0
 
 var current_weapon_name := "pistol"
 
-# HUD nodes (created in code)
+# Top HUD
 var hearts_container : HBoxContainer
+var wave_label : Label
+var score_display : Label
+
+# Bottom weapon HUD
 var weapon_icon : TextureRect
 var weapon_label : Label
 var ammo_label : Label
 var grenade_icon : TextureRect
 var dash_icon : TextureRect
 var mine_icon : TextureRect
-var wave_label : Label
-var score_display : Label
 
 # ==================== BOSS HP BAR ====================
 
@@ -120,7 +122,9 @@ func _ready() -> void:
 	$Timer.stop()
 	_create_obstacles()
 	_create_walls()
-	_create_hud()
+	_create_top_hud()
+	_create_weapon_hud()
+	_create_boss_bar()
 	_create_radio_display()
 	_show_radio_message(1)
 	await get_tree().create_timer(1.0).timeout
@@ -255,20 +259,22 @@ func _create_walls() -> void:
 		body.add_child(col)
 		add_child(body)
 
-# ==================== HUD ====================
+# ==================== MAIN HUD ====================
 
-func _create_hud() -> void:
+# ==================== TOP HUD (hearts + wave + score) ====================
+
+func _create_top_hud() -> void:
 	var hud = HBoxContainer.new()
 	hud.anchor_right = 1.0
 	hud.offset_left = 8
-	hud.offset_top = 6
+	hud.offset_top = 4
 	hud.offset_right = -8
-	hud.add_theme_constant_override("separation", 12)
+	hud.add_theme_constant_override("separation", 8)
 	$CanvasLayer.add_child(hud)
 	
 	# Hearts
 	hearts_container = HBoxContainer.new()
-	hearts_container.add_theme_constant_override("separation", 2)
+	hearts_container.add_theme_constant_override("separation", 1)
 	hud.add_child(hearts_container)
 	for i in 5:
 		var h = TextureRect.new()
@@ -277,78 +283,114 @@ func _create_hud() -> void:
 		h.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		hearts_container.add_child(h)
 	
-	_add_separator(hud)
-	
-	# Weapon
-	weapon_icon = TextureRect.new()
-	weapon_icon.texture = icon_pistol
-	weapon_icon.stretch_mode = TextureRect.STRETCH_KEEP
-	weapon_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	hud.add_child(weapon_icon)
-	
-	weapon_label = Label.new()
-	weapon_label.text = "Pistol"
-	weapon_label.add_theme_font_size_override("font_size", 14)
-	hud.add_child(weapon_label)
-	
-	# Ammo display
-	ammo_label = Label.new()
-	ammo_label.text = ""
-	ammo_label.add_theme_font_size_override("font_size", 12)
-	ammo_label.modulate = Color(0.9, 0.9, 0.7)
-	hud.add_child(ammo_label)
-	
-	_add_separator(hud)
-	
-	# Grenade
-	grenade_icon = TextureRect.new()
-	grenade_icon.texture = icon_grenade
-	grenade_icon.stretch_mode = TextureRect.STRETCH_KEEP
-	grenade_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	hud.add_child(grenade_icon)
-	
-	# Dash
-	dash_icon = TextureRect.new()
-	dash_icon.texture = icon_dash
-	dash_icon.stretch_mode = TextureRect.STRETCH_KEEP
-	dash_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	hud.add_child(dash_icon)
-	
-	# Mine
-	mine_icon = TextureRect.new()
-	mine_icon.texture = icon_mine
-	mine_icon.stretch_mode = TextureRect.STRETCH_KEEP
-	mine_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	hud.add_child(mine_icon)
-	
-	_add_separator(hud)
+	# Separator
+	var sep = Label.new()
+	sep.text = "|"
+	sep.add_theme_font_size_override("font_size", 10)
+	sep.modulate = Color(1, 1, 1, 0.25)
+	hud.add_child(sep)
 	
 	# Wave
 	wave_label = Label.new()
 	wave_label.text = "Vague 1"
-	wave_label.add_theme_font_size_override("font_size", 14)
+	wave_label.add_theme_font_size_override("font_size", 12)
 	hud.add_child(wave_label)
 	
-	# Score (aligned right)
+	# Spacer
 	var spacer = Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hud.add_child(spacer)
 	
+	# Score (right)
 	score_display = Label.new()
-	score_display.text = "Score: 0"
+	score_display.text = "0"
 	score_display.add_theme_font_size_override("font_size", 12)
 	score_display.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	score_display.size_flags_horizontal = Control.SIZE_SHRINK_END
 	hud.add_child(score_display)
 	
+	# Hide the tscn label
 	score_label.visible = false
 
-func _add_separator(parent: Node) -> void:
+# ==================== BOTTOM WEAPON HUD ====================
+
+func _create_weapon_hud() -> void:
+	# Panel anchored bottom-left
+	var panel = PanelContainer.new()
+	panel.anchor_left = 0.0
+	panel.anchor_top = 1.0
+	panel.anchor_bottom = 1.0
+	panel.offset_left = 6
+	panel.offset_bottom = -6
+	panel.offset_top = -30
+	panel.offset_right = 200
+	
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.45)
+	style.border_color = Color(1, 1, 1, 0.15)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(3)
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	style.content_margin_top = 3
+	style.content_margin_bottom = 3
+	panel.add_theme_stylebox_override("panel", style)
+	
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 5)
+	panel.add_child(hbox)
+	
+	# Weapon icon
+	weapon_icon = TextureRect.new()
+	weapon_icon.texture = icon_pistol
+	weapon_icon.stretch_mode = TextureRect.STRETCH_KEEP
+	weapon_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hbox.add_child(weapon_icon)
+	
+	# Weapon name
+	weapon_label = Label.new()
+	weapon_label.text = "Pistol"
+	weapon_label.add_theme_font_size_override("font_size", 10)
+	hbox.add_child(weapon_label)
+	
+	# Ammo
+	ammo_label = Label.new()
+	ammo_label.text = "∞"
+	ammo_label.add_theme_font_size_override("font_size", 10)
+	ammo_label.modulate = Color(0.7, 0.7, 0.7)
+	hbox.add_child(ammo_label)
+	
+	# Small separator
 	var sep = Label.new()
 	sep.text = "|"
-	sep.add_theme_font_size_override("font_size", 12)
-	sep.modulate = Color(1, 1, 1, 0.3)
-	parent.add_child(sep)
+	sep.add_theme_font_size_override("font_size", 10)
+	sep.modulate = Color(1, 1, 1, 0.2)
+	hbox.add_child(sep)
+	
+	# Grenade icon
+	grenade_icon = TextureRect.new()
+	grenade_icon.texture = icon_grenade
+	grenade_icon.stretch_mode = TextureRect.STRETCH_KEEP
+	grenade_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hbox.add_child(grenade_icon)
+	
+	# Dash icon
+	dash_icon = TextureRect.new()
+	dash_icon.texture = icon_dash
+	dash_icon.stretch_mode = TextureRect.STRETCH_KEEP
+	dash_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hbox.add_child(dash_icon)
+	
+	# Mine icon
+	mine_icon = TextureRect.new()
+	mine_icon.texture = icon_mine
+	mine_icon.stretch_mode = TextureRect.STRETCH_KEEP
+	mine_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hbox.add_child(mine_icon)
+	
+	$CanvasLayer.add_child(panel)
+	
+# ==================== HUD UPDATE ====================
 
 func _update_hud() -> void:
 	var player = get_tree().get_first_node_in_group("player")

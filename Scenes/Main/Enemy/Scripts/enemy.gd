@@ -117,7 +117,6 @@ func _ready() -> void:
 	add_to_group("enemy")
 	if not player:
 		player = get_tree().get_first_node_in_group("player")
-		
 
 # Configure stats and appearance based on type
 func setup(type: String) -> void:
