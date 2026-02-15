@@ -24,8 +24,9 @@ func setup(power_type: String) -> void:
 		"damage":
 			$Sprite2D.texture = tex_damage
 		"ammo":			
-			$Sprite2D.texture = tex_fire_rate
-			$Sprite2D.modulate = Color(1.0, 0.9, 0.3)
+			$Sprite2D.visible = false
+			var ammo_icon = AmmoBoxDraw.new()
+			add_child(ammo_icon)
 	$Sprite2D.scale = Vector2(0.35, 0.35)
 
 func _ready() -> void:
@@ -54,3 +55,23 @@ func _physics_process(delta: float) -> void:
 		audio.finished.connect(audio.queue_free)
 		
 		queue_free()
+
+# ==================== AMMO BOX ====================
+
+class AmmoBoxDraw extends Node2D:
+	var blink_timer := 0.0
+	
+	func _process(delta: float) -> void:
+		blink_timer += delta
+		queue_redraw()
+	
+	func _draw() -> void:
+		
+		var pulse = 0.85 + sin(blink_timer * 4.0) * 0.15
+		draw_rect(Rect2(-7, -5, 14, 10), Color(0.55 * pulse, 0.35 * pulse, 0.1, 1.0))
+		draw_rect(Rect2(-7, -5, 14, 10), Color(0.7, 0.5, 0.2, 0.8), false, 1.0)
+		draw_line(Vector2(-7, -5), Vector2(7, 5), Color(0.7, 0.5, 0.2, 0.5), 1.0)
+		draw_line(Vector2(7, -5), Vector2(-7, 5), Color(0.7, 0.5, 0.2, 0.5), 1.0)
+		draw_circle(Vector2(-3, -3), 1.5, Color(0.9, 0.8, 0.2))
+		draw_circle(Vector2(0, -3), 1.5, Color(0.9, 0.8, 0.2))
+		draw_circle(Vector2(3, -3), 1.5, Color(0.9, 0.8, 0.2))

@@ -34,6 +34,15 @@ var mine_icon : TextureRect
 var wave_label : Label
 var score_display : Label
 
+# ==================== BOSS HP BAR ====================
+
+var boss_bar_container : PanelContainer
+var boss_bar_fill : ColorRect
+var boss_bar_bg : ColorRect
+var boss_name_label : Label
+var boss_hp_label : Label
+var boss_bar_width := 200.0
+
 # ==================== RADIO ====================
 
 var radio_label : Label
@@ -327,7 +336,9 @@ func _create_hud() -> void:
 	
 	score_display = Label.new()
 	score_display.text = "Score: 0"
-	score_display.add_theme_font_size_override("font_size", 14)
+	score_display.add_theme_font_size_override("font_size", 12)
+	score_display.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	score_display.size_flags_horizontal = Control.SIZE_SHRINK_END
 	hud.add_child(score_display)
 	
 	score_label.visible = false
@@ -335,7 +346,7 @@ func _create_hud() -> void:
 func _add_separator(parent: Node) -> void:
 	var sep = Label.new()
 	sep.text = "|"
-	sep.add_theme_font_size_override("font_size", 14)
+	sep.add_theme_font_size_override("font_size", 12)
 	sep.modulate = Color(1, 1, 1, 0.3)
 	parent.add_child(sep)
 
@@ -363,14 +374,14 @@ func _update_hud() -> void:
 	
 	# Ammo display
 	if player.is_reloading:
-		ammo_label.text = "RELOADING"
+		ammo_label.text = "RECHARGEMENT"
 		ammo_label.modulate = Color(1.0, 0.5, 0.3)
 	elif player.current_mag.has(current_weapon_name):
 		var mag = player.current_mag[current_weapon_name]
 		var stock = player.current_stock[current_weapon_name]
 		if mag == -1:
 			ammo_label.text = ""
-			ammo_label.modulate = Color(0.9, 0.9, 0.7)
+			ammo_label.modulate = Color(0.7, 0.7, 0.7)
 		else:
 			ammo_label.text = "%s / %s" % [mag, stock]
 			# Color warning when low on ammo
@@ -402,6 +413,111 @@ func _update_hud() -> void:
 
 func on_weapon_changed(weapon: String) -> void:
 	current_weapon_name = weapon
+
+# ==================== BOSS HP BAR ====================
+
+func _create_boss_bar() -> void:
+	# Main container centered at top
+	boss_bar_container = PanelContainer.new()
+	boss_bar_container.anchor_left = 0.5
+	boss_bar_container.anchor_right = 0.5
+	boss_bar_container.anchor_top = 0.0
+	boss_bar_container.offset_left = -120
+	boss_bar_container.offset_right = 120
+	boss_bar_container.offset_top = 22
+	boss_bar_container.offset_bottom = 58
+	
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.02, 0.02, 0.85)
+	style.border_color = Color(0.6, 0.15, 0.1, 0.8)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(2)
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	style.content_margin_top = 3
+	style.content_margin_bottom = 3
+	boss_bar_container.add_theme_stylebox_override("panel", style)
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 2)
+	boss_bar_container.add_child(vbox)
+	
+	# Boss name
+	boss_name_label = Label.new()
+	boss_name_label.text = "SEIGNEUR DE LA FAILLE"
+	boss_name_label.add_theme_font_size_override("font_size", 9)
+	boss_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boss_name_label.modulate = Color(1.0, 0.4, 0.3)
+	vbox.add_child(boss_name_label)
+	
+	# Bar background
+	var bar_wrapper = Control.new()
+	bar_wrapper.custom_minimum_size = Vector2(boss_bar_width, 10)
+	vbox.add_child(bar_wrapper)
+	
+	boss_bar_bg = ColorRect.new()
+	boss_bar_bg.color = Color(0.15, 0.05, 0.05)
+	boss_bar_bg.position = Vector2.ZERO
+	boss_bar_bg.size = Vector2(boss_bar_width, 10)
+	bar_wrapper.add_child(boss_bar_bg)
+	
+	# Bar fill
+	boss_bar_fill = ColorRect.new()
+	boss_bar_fill.color = Color(0.8, 0.15, 0.1)
+	boss_bar_fill.position = Vector2.ZERO
+	boss_bar_fill.size = Vector2(boss_bar_width, 10)
+	bar_wrapper.add_child(boss_bar_fill)
+	
+	# HP text overlay
+	boss_hp_label = Label.new()
+	boss_hp_label.add_theme_font_size_override("font_size", 8)
+	boss_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	boss_hp_label.position = Vector2(0, -1)
+	boss_hp_label.size = Vector2(boss_bar_width, 12)
+	bar_wrapper.add_child(boss_hp_label)
+	
+	$CanvasLayer.add_child(boss_bar_container)
+	boss_bar_container.visible = false
+
+func update_boss_hp(hp: int, max_hp: int) -> void:
+	if not is_instance_valid(boss_bar_container):
+		return
+	boss_bar_container.visible = true
+	var ratio = float(hp) / float(max_hp)
+	boss_bar_fill.size.x = boss_bar_width * ratio
+	boss_hp_label.text = "%s / %s" % [hp, max_hp]
+	
+	# Color shifts as HP drops
+	if ratio > 0.5:
+		boss_bar_fill.color = Color(0.8, 0.15, 0.1)
+	elif ratio > 0.25:
+		boss_bar_fill.color = Color(0.9, 0.4, 0.1)
+	else:
+		boss_bar_fill.color = Color(1.0, 0.7, 0.1)
+
+func _show_boss_bar() -> void:
+	boss_bar_container.visible = true
+	boss_bar_fill.size.x = boss_bar_width
+	boss_hp_label.text = ""
+	
+	# Boss name by wave
+	var wave_tier = current_wave / 5
+	var boss_names := [
+		"Seigneur de la Faille",
+		"Gardien des Ombres",
+		"Roi des Morts",
+		"Archonte Déchu",
+		"Titan de l'Abîme",
+	]
+	boss_name_label.text = boss_names[min(wave_tier - 1, boss_names.size() - 1)]
+
+func _hide_boss_bar() -> void:
+	if is_instance_valid(boss_bar_container):
+		boss_bar_container.visible = false
+
+func on_boss_killed() -> void:
+	boss_alive = false
+	_hide_boss_bar()
 
 # ==================== RADIO DISPLAY ====================
 
@@ -529,9 +645,6 @@ func _start_intermission() -> void:
 		await get_tree().create_timer(1.0).timeout
 		_start_next_wave()
 
-func on_boss_killed() -> void:
-	boss_alive = false
-
 # ==================== GAME LOOP ====================
 
 func _process(_delta) -> void:
@@ -568,6 +681,7 @@ func _input(event: InputEvent) -> void:
 
 func game_over() -> void:
 	is_game_over = true
+	_hide_boss_bar()
 	score_label.visible = true
 	score_label.text = "GAME OVER!\n\nScore: %s  |  Vague: %s\n\nAppuyer sur une touche" % [score, current_wave]
 	$Timer.stop()

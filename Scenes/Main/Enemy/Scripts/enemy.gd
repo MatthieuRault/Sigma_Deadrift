@@ -13,6 +13,7 @@ var enemy_type := "normal"
 var score_value := 10
 var damage := 1
 var is_dying := false
+var been_hit := false
 
 # ==================== BOSS ====================
 
@@ -97,6 +98,19 @@ var DEATH_COLOR := {
 	"boss":        Color(1.0, 0.3, 0.3),
 }
 
+# ==================== HEALTH BAR COLORS ====================
+
+var HP_BAR_COLORS := {
+	"normal":      Color(0.2, 0.8, 0.2),
+	"fast":        Color(0.4, 0.9, 0.3),
+	"tank":        Color(0.8, 0.6, 0.1),
+	"shaman":      Color(0.3, 0.6, 1.0),
+	"necromancer": Color(0.6, 0.2, 0.9),
+	"volatile":    Color(1.0, 0.5, 0.1),
+	"ghost":       Color(0.6, 0.6, 0.9),
+	"boss":        Color(1.0, 0.2, 0.2),
+}
+
 # ==================== INITIALIZATION ====================
 
 func _ready() -> void:
@@ -157,6 +171,34 @@ func _apply_visual_scale(base_scale: float) -> void:
 		shape.radius *= base_scale
 		$CollisionShape2D.shape = shape
 
+# ==================== HEALTH BAR ====================
+
+func _draw() -> void:
+	# Only show health bar after first hit mobs
+	if not been_hit or is_boss:
+		return
+	
+	var bar_width := 20.0
+	var bar_height := 3.0
+	var bar_y := -18.0
+	
+	# Scale bar for bigger enemies
+	if enemy_type == "tank":
+		bar_width = 26.0
+		bar_y = -22.0
+	
+	var hp_ratio = float(health) / float(max_health)
+	var bar_x = -bar_width / 2.0
+	
+	# Background
+	draw_rect(Rect2(bar_x - 1, bar_y - 1, bar_width + 2, bar_height + 2), Color(0, 0, 0, 0.6))
+	
+	# HP fill
+	var fill_color = HP_BAR_COLORS.get(enemy_type, Color(0.2, 0.8, 0.2))
+	# Shift to red when low
+	if hp_ratio < 0.35:
+		fill_color = Color(0.9, 0.2, 0.1)
+	draw_rect(Rect2(bar_x, bar_y, bar_width * hp_ratio, bar_height), fill_color)
 
 # ==================== GAME LOOP ====================
 
@@ -172,6 +214,9 @@ func _physics_process(delta: float) -> void:
 	
 	# Animate sprite frames
 	_animate(delta)
+	
+	if been_hit and not is_boss:
+		queue_redraw()
 	
 	# Type-specific behavior
 	match enemy_type:
@@ -328,6 +373,12 @@ func take_damage(amount: int) -> void:
 		return
 	
 	health -= amount
+	been_hit = true
+	
+	if is_boss:
+		var main = get_tree().current_scene
+		if main.has_method("update_boss_hp"):
+			main.update_boss_hp(health, max_health)
 	
 	if health <= 0:
 		_die()
