@@ -259,8 +259,6 @@ func _create_walls() -> void:
 		body.add_child(col)
 		add_child(body)
 
-# ==================== MAIN HUD ====================
-
 # ==================== TOP HUD (hearts + wave + score) ====================
 
 func _create_top_hud() -> void:
@@ -421,12 +419,14 @@ func _update_hud() -> void:
 	elif player.current_mag.has(current_weapon_name):
 		var mag = player.current_mag[current_weapon_name]
 		var stock = player.current_stock[current_weapon_name]
-		if mag == -1:
-			ammo_label.text = "∞"
-			ammo_label.modulate = Color(0.7, 0.7, 0.7)
+		if stock == -1:
+			ammo_label.text = "%s|∞" % mag
+			if mag <= 3:
+				ammo_label.modulate = Color(1.0, 0.7, 0.3)
+			else:
+				ammo_label.modulate = Color(0.9, 0.9, 0.7)
 		else:
-			ammo_label.text = "%s / %s" % [mag, stock]
-			# Color warning when low on ammo
+			ammo_label.text = "%s|%s" % [mag, stock]
 			if mag == 0 and stock == 0:
 				ammo_label.modulate = Color(1.0, 0.2, 0.2)
 			elif mag <= 2:

@@ -38,7 +38,7 @@ var weapon_data := {
 
 # Ammo data: mag_size, max_stock, reload_time (-1 = infinite)
 var ammo_data := {
-	"pistol":  {"mag_size": -1, "max_stock": -1, "reload_time": 0.4},
+	"pistol":  {"mag_size": 12, "max_stock": -1, "reload_time": 0.7},
 	"shotgun": {"mag_size": 4,  "max_stock": 24, "reload_time": 1.5},
 	"sniper":  {"mag_size": 3,  "max_stock": 12, "reload_time": 1.8},
 	"assault": {"mag_size": 20, "max_stock": 80, "reload_time": 1.2},
@@ -99,14 +99,13 @@ func _ready() -> void:
 	for w in weapon_data:
 		base_weapon_data[w] = weapon_data[w].duplicate()
 	
-	# Ammo for all weapons
+	# Ammo for all weapons (-1 max_stock = infinite)
 	for w in ammo_data:
 		var data = ammo_data[w]
-		if data["mag_size"] == -1:
-			current_mag[w] = -1
+		current_mag[w] = data["mag_size"]
+		if data["max_stock"] == -1:
 			current_stock[w] = -1
 		else:
-			current_mag[w] = data["mag_size"]
 			current_stock[w] = data["max_stock"]
 	
 	# Load grenade scene if available
@@ -214,7 +213,8 @@ func _shoot() -> void:
 	# AMMO CHECK
 	var mag = current_mag[current_weapon]
 	if mag == 0:
-		if current_stock[current_weapon] <= 0:
+		# No stock and not infinite? Can't shoot at all
+		if current_stock[current_weapon] != -1 and current_stock[current_weapon] <= 0:
 			return
 		_reload()
 		return
@@ -275,14 +275,11 @@ func _shoot() -> void:
 func _reload() -> void:
 	var a = ammo_data[current_weapon]
 	
-	# Can't reload infinite weapons
-	if a["mag_size"] == -1:
-		return
 	# Already full
 	if current_mag[current_weapon] == a["mag_size"]:
 		return
-	# No stock left
-	if current_stock[current_weapon] <= 0:
+	# No stock left (skip check for infinite stock)
+	if current_stock[current_weapon] != -1 and current_stock[current_weapon] <= 0:
 		return
 	# Already reloading
 	if is_reloading:
@@ -298,13 +295,20 @@ func _reload() -> void:
 	
 	if not is_instance_valid(self):
 		return
+		
+	if not is_reloading:
+		return
 	
 	var needed = a["mag_size"] - current_mag[current_weapon]
-	var available = current_stock[current_weapon]
-	var to_load = min(needed, available)
 	
-	current_mag[current_weapon] += to_load
-	current_stock[current_weapon] -= to_load
+	if current_stock[current_weapon] == -1:
+		# Infinite stock: just fill the mag
+		current_mag[current_weapon] = a["mag_size"]
+	else:
+		var available = current_stock[current_weapon]
+		var to_load = min(needed, available)
+		current_mag[current_weapon] += to_load
+		current_stock[current_weapon] -= to_load
 	
 	sprite.modulate = Color.WHITE
 	is_reloading = false
@@ -317,7 +321,8 @@ func _cancel_reload() -> void:
 # ==================== AMMO PICKUP ====================
 
 func add_ammo(weapon: String, amount: int) -> void:
-	if ammo_data[weapon]["mag_size"] == -1:
+	# Skip weapons with infinite stock
+	if ammo_data[weapon]["max_stock"] == -1:
 		return
 	current_stock[weapon] = min(current_stock[weapon] + amount, ammo_data[weapon]["max_stock"])
 
