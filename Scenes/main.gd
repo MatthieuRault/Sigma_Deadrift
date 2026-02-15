@@ -380,7 +380,7 @@ func _update_hud() -> void:
 		var mag = player.current_mag[current_weapon_name]
 		var stock = player.current_stock[current_weapon_name]
 		if mag == -1:
-			ammo_label.text = ""
+			ammo_label.text = "∞"
 			ammo_label.modulate = Color(0.7, 0.7, 0.7)
 		else:
 			ammo_label.text = "%s / %s" % [mag, stock]
