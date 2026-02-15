@@ -78,7 +78,13 @@ var mine_radius := 45.0
 # ==================== HEALTH ====================
 
 var health := 5
+var max_health := 5
 var invincible := false
+
+# ==================== RELOAD VISUAL ====================
+
+var reload_progress := 0.0
+var reload_duration := 0.0
 
 # ==================== SOUNDS ====================
 
@@ -123,10 +129,14 @@ func _ready() -> void:
 
 # ==================== GAME LOOP ====================
 
-func _physics_process(_delta) -> void:
+func _physics_process(delta) -> void:
 	if is_dashing:
 		move_and_slide()
 		return
+		
+	if is_reloading:
+		reload_progress += delta
+	queue_redraw()
 	
 	# Minigun slows player while firing
 	if current_weapon == "minigun" and is_firing:
@@ -360,6 +370,8 @@ func _reload() -> void:
 	
 	is_reloading = true
 	is_firing = false
+	reload_duration = a["reload_time"]
+	reload_progress = 0.0
 	
 	# Visual feedback
 	sprite.modulate = Color(0.7, 0.7, 1.0)
@@ -385,10 +397,14 @@ func _reload() -> void:
 	
 	sprite.modulate = Color.WHITE
 	is_reloading = false
+	reload_progress = 0.0
+	reload_duration = 0.0
 	
 func _cancel_reload() -> void:
 	if is_reloading:
 		is_reloading = false
+		reload_progress = 0.0
+		reload_duration = 0.0
 		sprite.modulate = Color.WHITE
 
 # ==================== AMMO PICKUP ====================
@@ -575,7 +591,7 @@ func _die() -> void:
 func apply_powerup(type: String) -> void:
 	match type:
 		"heal":
-			health = min(health + 2, 5)
+			health = min(health + 2, max_health)
 		"ammo":
 			add_ammo_all(20)
 		"fire_rate":
@@ -598,6 +614,50 @@ func apply_powerup(type: String) -> void:
 			for w in weapon_data:
 				weapon_data[w]["damage"] = base_weapon_data[w]["damage"]
 			damage_buff_active = false
+
+# ==================== PLAYER VISUAL INDICATORS ====================
+
+func _draw() -> void:
+	_draw_health_bar()
+	if is_reloading:
+		_draw_reload_arc()
+
+func _draw_health_bar() -> void:
+	var bar_width := 24.0
+	var bar_height := 3.0
+	var bar_y := -22.0
+	var bar_x := -bar_width / 2.0
+	var hp_ratio := float(health) / float(max_health)
+	
+	# Background
+	draw_rect(Rect2(bar_x - 1, bar_y - 1, bar_width + 2, bar_height + 2), Color(0, 0, 0, 0.5))
+	
+	# HP fill — green to red
+	var fill_color := Color(0.2, 0.8, 0.2)
+	if hp_ratio < 0.4:
+		fill_color = Color(0.9, 0.2, 0.1)
+	elif hp_ratio < 0.7:
+		fill_color = Color(0.9, 0.7, 0.1)
+	draw_rect(Rect2(bar_x, bar_y, bar_width * hp_ratio, bar_height), fill_color)
+
+func _draw_reload_arc() -> void:
+	if reload_duration <= 0.0:
+		return
+	
+	var ratio : float = clamp(reload_progress / reload_duration, 0.0, 1.0)
+	var radius := 18.0
+	var start_angle := -PI / 2.0  # Start from top
+	var end_angle = start_angle + TAU * ratio
+	
+	# Background circle (dim)
+	draw_arc(Vector2.ZERO, radius, 0, TAU, 32, Color(0.4, 0.4, 0.4, 0.25), 2.0)
+	
+	# Progress arc
+	if ratio > 0.01:
+		var arc_color := Color(0.5, 0.7, 1.0, 0.7)
+		if ratio > 0.8:
+			arc_color = Color(0.3, 1.0, 0.5, 0.8)
+		draw_arc(Vector2.ZERO, radius, start_angle, end_angle, 32, arc_color, 2.5)
 
 # ==================== UTILITY ====================
 
