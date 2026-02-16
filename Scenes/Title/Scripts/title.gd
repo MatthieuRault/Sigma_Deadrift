@@ -79,7 +79,7 @@ func _create_menu() -> void:
 	vbox.add_child(quit_btn)
 	
 	var controls = Label.new()
-	controls.text = "ZQSD - Move  |  LMB - Shoot  |  RMB - Grenade  |  F - Mine\nSpace - Dash  |  1-6 - Weapons  |  Scroll - Switch"
+	controls.text = "ZQSD - Move  |  LMB - Shoot  |  RMB - Grenade\nF - Mine  |  Space - Dash  |  B - Fire Mode\n1-6 - Weapons  |  R - Reload  |  Scroll - Switch"
 	controls.add_theme_font_size_override("font_size", 10)
 	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	controls.modulate = Color(1, 1, 1, 0.4)

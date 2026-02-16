@@ -46,6 +46,12 @@ var boss_name_label : Label
 var boss_hp_label : Label
 var boss_bar_width := 200.0
 
+# ==================== PAUSE MENU ====================
+
+var is_paused := false
+var pause_overlay : ColorRect
+var pause_container : VBoxContainer
+
 # ==================== RADIO ====================
 
 var radio_label : Label
@@ -127,6 +133,7 @@ func _ready() -> void:
 	_create_weapon_hud()
 	_create_boss_bar()
 	_create_radio_display()
+	_create_pause_menu()
 	_show_radio_message(1)
 	await get_tree().create_timer(1.0).timeout
 	_start_next_wave()
@@ -693,6 +700,93 @@ func _hide_radio() -> void:
 	if radio_tween:
 		radio_tween.kill()
 
+# ==================== PAUSE MENU ====================
+
+func _create_pause_menu() -> void:
+	# Full-screen dark overlay
+	pause_overlay = ColorRect.new()
+	pause_overlay.color = Color(0.0, 0.0, 0.0, 0.6)
+	pause_overlay.anchor_right = 1.0
+	pause_overlay.anchor_bottom = 1.0
+	pause_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	# Must keep processing while game is paused
+	pause_overlay.process_mode = Node.PROCESS_MODE_ALWAYS
+	pause_overlay.visible = false
+	$CanvasLayer.add_child(pause_overlay)
+	
+	# Dedicated input handler — only this node runs during pause
+	var handler = Node.new()
+	handler.name = "PauseHandler"
+	handler.process_mode = Node.PROCESS_MODE_ALWAYS
+	var script = GDScript.new()
+	script.source_code = 'extends Node
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		var main = get_tree().current_scene
+		if not main.is_game_over:
+			main._toggle_pause()
+'
+	script.reload()
+	handler.set_script(script)
+	add_child(handler)
+	
+	# Centered container for menu items
+	pause_container = VBoxContainer.new()
+	pause_container.anchor_left = 0.5
+	pause_container.anchor_right = 0.5
+	pause_container.anchor_top = 0.3
+	pause_container.offset_left = -80
+	pause_container.offset_right = 80
+	pause_container.add_theme_constant_override("separation", 10)
+	pause_container.process_mode = Node.PROCESS_MODE_ALWAYS
+	pause_overlay.add_child(pause_container)
+	
+	# Title
+	var title = Label.new()
+	title.text = "PAUSE"
+	title.add_theme_font_size_override("font_size", 28)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pause_container.add_child(title)
+	
+	# Spacer
+	var spacer = Control.new()
+	spacer.custom_minimum_size = Vector2(0, 8)
+	pause_container.add_child(spacer)
+	
+	# Resume button
+	var resume_btn = Button.new()
+	resume_btn.text = "REPRENDRE"
+	resume_btn.add_theme_font_size_override("font_size", 14)
+	resume_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	resume_btn.pressed.connect(_toggle_pause)
+	pause_container.add_child(resume_btn)
+	
+	# Quit to title button
+	var quit_btn = Button.new()
+	quit_btn.text = "MENU PRINCIPAL"
+	quit_btn.add_theme_font_size_override("font_size", 14)
+	quit_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	quit_btn.pressed.connect(_quit_to_title)
+	pause_container.add_child(quit_btn)
+	
+	# Controls reminder
+	var controls = Label.new()
+	controls.text = "ZQSD - Move  |  LMB - Shoot  |  RMB - Grenade\nF - Mine  |  Space - Dash  |  B - Fire Mode\n1-6 - Weapons  |  R - Reload  |  Scroll - Switch"
+	controls.add_theme_font_size_override("font_size", 8)
+	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	controls.modulate = Color(1, 1, 1, 0.4)
+	pause_container.add_child(controls)
+
+func _toggle_pause() -> void:
+	is_paused = not is_paused
+	get_tree().paused = is_paused
+	pause_overlay.visible = is_paused
+
+func _quit_to_title() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://Scenes/Title/title.tscn")
+
 # ==================== WAVE SYSTEM ====================
 
 func _start_next_wave() -> void:
@@ -721,7 +815,7 @@ func _start_intermission() -> void:
 # ==================== GAME LOOP ====================
 
 func _process(_delta) -> void:
-	if is_game_over:
+	if is_game_over or is_paused:
 		return
 	
 	enemies_alive = get_tree().get_nodes_in_group("enemy").size()
@@ -745,7 +839,8 @@ func _process(_delta) -> void:
 func add_score(amount: int) -> void:
 	score += amount
 
-func _input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:	
+	# Skip radio with Enter
 	if radio_visible and event.is_action_pressed("ui_accept"):
 		_hide_radio()
 		return
@@ -755,6 +850,7 @@ func _input(event: InputEvent) -> void:
 func game_over() -> void:
 	is_game_over = true
 	_hide_boss_bar()
+	is_paused = false
 	score_label.visible = true
 	score_label.text = "GAME OVER!\n\nScore: %s  |  Vague: %s\n\nAppuyer sur une touche" % [score, current_wave]
 	$Timer.stop()
