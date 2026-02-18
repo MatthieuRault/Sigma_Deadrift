@@ -410,7 +410,7 @@ func _update_hud() -> void:
 				ss.border_color = Color(1, 1, 1, 0.08)
 		else:
 			ir.texture      = null
-			al.text         = "— empty —"
+			al.text         = "— Aucune —"
 			al.modulate     = Color(1, 1, 1, 0.2)
 			ss.bg_color     = Color(0, 0, 0, 0)
 			ss.border_color = Color(1, 1, 1, 0.05)
@@ -791,6 +791,8 @@ func _start_next_wave() -> void:
 	if GUARANTEED_DROPS.has(current_wave):
 		_spawn_guaranteed_drop(GUARANTEED_DROPS[current_wave])
 
+	_show_wave_announcement()
+
 	if current_wave % 5 == 0:
 		enemies_to_spawn = 1
 		boss_alive = true
@@ -800,6 +802,64 @@ func _start_next_wave() -> void:
 	spawn_interval         = max(0.3, 1.2 - current_wave * 0.05)
 	$Timer.wait_time       = spawn_interval
 	$Timer.start()
+
+# ==================== WAVE ANNOUNCEMENT ====================
+
+# Enemy types introduced per wave
+const WAVE_INTRO := {
+	2:  "Ennemis rapides en approche !",
+	3:  "Les tanks arrivent.",
+	4:  "Les shamans rejoignent la horde.",
+	6:  "Volatiles détectés — gardez vos distances.",
+	7:  "Les nécromanciens ressuscitent vos morts.",
+	8:  "Spectres détectés — visez vite.",
+}
+
+# Displays a fullscreen wave title + subtitle for 2 seconds
+func _show_wave_announcement() -> void:
+	var is_boss_wave = current_wave % 5 == 0
+
+	var container = PanelContainer.new()
+	container.anchor_left  = 0.5; container.anchor_right = 0.5
+	container.anchor_top   = 0.06
+	container.offset_left  = -140; container.offset_right = 140
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0, 0, 0, 0.55)
+	style.set_border_width_all(0); style.set_corner_radius_all(3)
+	style.content_margin_left = 10; style.content_margin_right = 10
+	style.content_margin_top = 5;  style.content_margin_bottom = 5
+	container.add_theme_stylebox_override("panel", style)
+	container.modulate = Color(1, 1, 1, 0)
+	$CanvasLayer.add_child(container)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 1)
+	container.add_child(vbox)
+
+	# Wave title
+	var title = Label.new()
+	title.text = ("— VAGUE %d — BOSS" if is_boss_wave else "— VAGUE %d —") % current_wave
+	title.add_theme_font_size_override("font_size", 14)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.modulate = Color(1.0, 0.35, 0.35) if is_boss_wave else Color(1, 1, 1)
+	vbox.add_child(title)
+
+	# Subtitle
+	var subtitle = Label.new()
+	if is_boss_wave:                   subtitle.text = "Un boss approche..."
+	elif WAVE_INTRO.has(current_wave): subtitle.text = WAVE_INTRO[current_wave]
+	else:                              subtitle.text = "La horde grossit."
+	subtitle.add_theme_font_size_override("font_size", 9)
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.modulate = Color(0.8, 0.8, 0.8)
+	vbox.add_child(subtitle)
+
+	var tw = create_tween()
+	tw.tween_property(container, "modulate:a", 1.0, 0.2)
+	tw.tween_interval(1.6)
+	tw.tween_property(container, "modulate:a", 0.0, 0.3)
+	tw.tween_callback(container.queue_free)
 
 func _start_intermission() -> void:
 	between_waves = true

@@ -182,9 +182,8 @@ func _input(event: InputEvent) -> void:
 		elif event.keycode == KEY_2: _set_weapon(1)
 		elif event.keycode == KEY_3: _set_weapon(2)
 		elif event.keycode == KEY_R: _reload()
-		elif event.keycode == KEY_B: _cycle_fire_mode()
-		# Q swaps the current weapon with the nearest ground drop
-		elif event.keycode == KEY_Q: _try_swap_weapon()
+		elif event.keycode == KEY_B: _cycle_fire_mode()		
+		elif event.keycode == KEY_G: _try_swap_weapon()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -247,7 +246,7 @@ func pickup_weapon(type: String) -> bool:
 		_flash(Color(0.5, 1.0, 0.5))
 		return true
 
-	# Inventory full — player must use Q to swap
+	# Inventory full — player must use G to swap
 	if weapons.size() >= MAX_WEAPONS:
 		return false
 
@@ -262,10 +261,9 @@ func pickup_weapon(type: String) -> bool:
 	_flash(Color(1.0, 1.0, 0.3))
 	return true
 
-# Q key: swap the current weapon with the nearest ground drop within range.
 func _try_swap_weapon() -> void:
 	var best_drop : Node  = null
-	var best_dist : float = 55.0   # Max swap range in pixels
+	var best_dist : float = 55.0
 
 	for node in get_tree().get_nodes_in_group("weapon_drops"):
 		if not is_instance_valid(node): continue
